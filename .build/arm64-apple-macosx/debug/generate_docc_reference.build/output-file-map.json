@@ -1,0 +1,26 @@
+{
+  "": {
+    "swift-dependencies": "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/arm64-apple-macosx/debug/generate_docc_reference.build/master.swiftdeps"
+  },
+  "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Tools/generate-docc-reference/Extensions/ArgumentParser+Markdown.swift": {
+    "dependencies": "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/arm64-apple-macosx/debug/generate_docc_reference.build/ArgumentParser+Markdown.d",
+    "object": "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/arm64-apple-macosx/debug/generate_docc_reference.build/ArgumentParser+Markdown.swift.o",
+    "swiftmodule": "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/arm64-apple-macosx/debug/generate_docc_reference.build/ArgumentParser+Markdown~partial.swiftmodule",
+    "swift-dependencies": "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/arm64-apple-macosx/debug/generate_docc_reference.build/ArgumentParser+Markdown.swiftdeps",
+    "diagnostics": "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/arm64-apple-macosx/debug/generate_docc_reference.build/ArgumentParser+Markdown.dia"
+  },
+  "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Tools/generate-docc-reference/Extensions/Process+SimpleAPI.swift": {
+    "dependencies": "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/arm64-apple-macosx/debug/generate_docc_reference.build/Process+SimpleAPI.d",
+    "object": "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/arm64-apple-macosx/debug/generate_docc_reference.build/Process+SimpleAPI.swift.o",
+    "swiftmodule": "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/arm64-apple-macosx/debug/generate_docc_reference.build/Process+SimpleAPI~partial.swiftmodule",
+    "swift-dependencies": "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/arm64-apple-macosx/debug/generate_docc_reference.build/Process+SimpleAPI.swiftdeps",
+    "diagnostics": "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/arm64-apple-macosx/debug/generate_docc_reference.build/Process+SimpleAPI.dia"
+  },
+  "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Tools/generate-docc-reference/GenerateDoccReference.swift": {
+    "dependencies": "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/arm64-apple-macosx/debug/generate_docc_reference.build/GenerateDoccReference.d",
+    "object": "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/arm64-apple-macosx/debug/generate_docc_reference.build/GenerateDoccReference.swift.o",
+    "swiftmodule": "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/arm64-apple-macosx/debug/generate_docc_reference.build/GenerateDoccReference~partial.swiftmodule",
+    "swift-dependencies": "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/arm64-apple-macosx/debug/generate_docc_reference.build/GenerateDoccReference.swiftdeps",
+    "diagnostics": "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/arm64-apple-macosx/debug/generate_docc_reference.build/GenerateDoccReference.dia"
+  }
+}

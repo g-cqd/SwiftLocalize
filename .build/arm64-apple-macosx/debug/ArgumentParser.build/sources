@@ -1,0 +1,51 @@
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Completions/BashCompletionsGenerator.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Completions/CompletionsGenerator.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Completions/FishCompletionsGenerator.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Completions/ZshCompletionsGenerator.swift
+'/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsable Properties/Argument.swift'
+'/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsable Properties/ArgumentDiscussion.swift'
+'/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsable Properties/ArgumentHelp.swift'
+'/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsable Properties/ArgumentVisibility.swift'
+'/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsable Properties/CompletionKind.swift'
+'/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsable Properties/Errors.swift'
+'/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsable Properties/Flag.swift'
+'/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsable Properties/NameSpecification.swift'
+'/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsable Properties/Option.swift'
+'/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsable Properties/OptionGroup.swift'
+'/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsable Properties/ParentCommand.swift'
+'/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsable Types/AsyncParsableCommand.swift'
+'/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsable Types/CommandConfiguration.swift'
+'/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsable Types/CommandGroup.swift'
+'/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsable Types/EnumerableFlag.swift'
+'/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsable Types/ExpressibleByArgument.swift'
+'/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsable Types/ParsableArguments.swift'
+'/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsable Types/ParsableCommand.swift'
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsing/ArgumentDecoder.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsing/ArgumentDefinition.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsing/ArgumentSet.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsing/CommandParser.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsing/InputKey.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsing/InputOrigin.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsing/Name.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsing/Parsed.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsing/ParsedValues.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsing/ParserError.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Parsing/SplitArguments.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Usage/DumpHelpGenerator.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Usage/HelpCommand.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Usage/HelpGenerator.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Usage/MessageInfo.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Usage/UsageGenerator.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Utilities/CollectionExtensions.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Utilities/Foundation.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Utilities/Mutex.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Utilities/Platform.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Utilities/SequenceExtensions.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Utilities/StringExtensions.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Utilities/SwiftExtensions.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Utilities/Tree.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Validators/CodingKeyValidator.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Validators/NonsenseFlagsValidator.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Validators/ParsableArgumentsValidation.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Validators/PositionalArgumentsValidator.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/checkouts/swift-argument-parser/Sources/ArgumentParser/Validators/UniqueNamesValidator.swift

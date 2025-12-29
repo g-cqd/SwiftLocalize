@@ -1,0 +1,10 @@
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/Tests/SwiftLocalizeCoreTests/AdditionalTests.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/Tests/SwiftLocalizeCoreTests/CLIFeatureTests.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/Tests/SwiftLocalizeCoreTests/ConfigurationTests.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/Tests/SwiftLocalizeCoreTests/ContextTests.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/Tests/SwiftLocalizeCoreTests/IntegrationTests.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/Tests/SwiftLocalizeCoreTests/LegacyFormatTests.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/Tests/SwiftLocalizeCoreTests/ServiceTests.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/Tests/SwiftLocalizeCoreTests/TranslationProviderTests.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/Tests/SwiftLocalizeCoreTests/XCStringsTests.swift
+/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/arm64-apple-macosx/debug/SwiftLocalizeCoreTests.build/DerivedSources/resource_bundle_accessor.swift

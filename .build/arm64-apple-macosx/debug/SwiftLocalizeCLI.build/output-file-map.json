@@ -1,0 +1,12 @@
+{
+  "": {
+    "swift-dependencies": "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/arm64-apple-macosx/debug/SwiftLocalizeCLI.build/master.swiftdeps"
+  },
+  "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/Sources/SwiftLocalizeCLI/SwiftLocalize.swift": {
+    "dependencies": "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/arm64-apple-macosx/debug/SwiftLocalizeCLI.build/SwiftLocalize.d",
+    "object": "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/arm64-apple-macosx/debug/SwiftLocalizeCLI.build/SwiftLocalize.swift.o",
+    "swiftmodule": "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/arm64-apple-macosx/debug/SwiftLocalizeCLI.build/SwiftLocalize~partial.swiftmodule",
+    "swift-dependencies": "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/arm64-apple-macosx/debug/SwiftLocalizeCLI.build/SwiftLocalize.swiftdeps",
+    "diagnostics": "/Users/gc/Developer/_Projects/_nightly/SwiftLocalize/.build/arm64-apple-macosx/debug/SwiftLocalizeCLI.build/SwiftLocalize.dia"
+  }
+}
