@@ -152,9 +152,11 @@ struct SyncKeysCommand: AsyncParsableCommand {
         case "alphabetical",
              "asc":
             .alphabetical
+
         case "alphabeticaldescending",
              "desc":
             .alphabeticalDescending
+
         case "byextractionstate",
              "extraction":
             .byExtractionState

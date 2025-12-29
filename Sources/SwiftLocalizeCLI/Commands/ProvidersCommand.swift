@@ -42,7 +42,7 @@ struct ProvidersCommand: AsyncParsableCommand {
     private func collectProviderInfo() async -> [ProviderInfo] {
         var providers: [ProviderInfo] = []
         providers.append(contentsOf: collectAPIProviders())
-        providers.append(contentsOf: await collectLocalProviders())
+        await providers.append(contentsOf: collectLocalProviders())
         providers.append(contentsOf: collectAppleProviders())
         return providers
     }

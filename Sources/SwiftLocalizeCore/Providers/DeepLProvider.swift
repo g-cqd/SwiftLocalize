@@ -194,7 +194,6 @@ public final class DeepLProvider: TranslationProvider, @unchecked Sendable {
              "ZH-HANS": return "ZH-HANS"
         case "ZH-HANT",
              "ZH-TW": return "ZH-HANT"
-
         default:
             // For source language, DeepL only wants the base code
             let base = upperCode.split(separator: "-").first.map(String.init) ?? upperCode

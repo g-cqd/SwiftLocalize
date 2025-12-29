@@ -361,11 +361,11 @@ public actor StringsFileParser {
                     }
                     if hexChars.count == 4,
                        let codePoint = UInt32(String(hexChars), radix: 16),
-                       let scalar = Unicode.Scalar(codePoint) {
+                       let scalar = Unicode.Scalar(codePoint)
+                    {
                         result.append(Character(scalar))
                     }
                     continue
-
                 default:
                     result.append(char)
                     result.append(escaped)
