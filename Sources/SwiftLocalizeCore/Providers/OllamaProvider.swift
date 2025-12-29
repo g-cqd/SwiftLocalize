@@ -163,13 +163,8 @@ public final class OllamaProvider: TranslationProvider, @unchecked Sendable {
                 url: "\(config.baseURL)/api/tags",
             )
             return response.models.map(\.name)
-        } catch let httpError as HTTPError {
-            throw mapHTTPError(httpError)
         } catch {
-            throw TranslationError.providerError(
-                provider: identifier,
-                message: error.localizedDescription,
-            )
+            throw mapHTTPError(error)
         }
     }
 
@@ -192,13 +187,8 @@ public final class OllamaProvider: TranslationProvider, @unchecked Sendable {
                 body: request,
                 headers: ["Content-Type": "application/json"],
             )
-        } catch let httpError as HTTPError {
-            throw mapHTTPError(httpError)
         } catch {
-            throw TranslationError.providerError(
-                provider: identifier,
-                message: error.localizedDescription,
-            )
+            throw mapHTTPError(error)
         }
     }
 

@@ -5,8 +5,9 @@
 //  Tests for CLI-related features: migrate, glossary, cache commands
 
 import Foundation
-@testable import SwiftLocalizeCore
 import Testing
+
+@testable import SwiftLocalizeCore
 
 // MARK: - GlossaryCLITests
 

@@ -7,8 +7,9 @@
 //
 
 import Foundation
-@testable import SwiftLocalizeCore
 import Testing
+
+@testable import SwiftLocalizeCore
 
 // MARK: - LanguageCodeTests
 
@@ -444,16 +445,39 @@ struct HTTPErrorTests {
     @Test("HTTPError equality")
     func httpErrorEquality() {
         let data = Data("error".utf8)
+        let data2 = Data("error".utf8)
 
-        #expect(HTTPError.invalidURL("a") == HTTPError.invalidURL("a"))
-        #expect(HTTPError.invalidURL("a") != HTTPError.invalidURL("b"))
-        #expect(HTTPError.invalidResponse == HTTPError.invalidResponse)
-        #expect(HTTPError.statusCode(404, data) == HTTPError.statusCode(404, data))
-        #expect(HTTPError.statusCode(404, data) != HTTPError.statusCode(500, data))
-        #expect(HTTPError.timeout == HTTPError.timeout)
-        #expect(HTTPError.encodingFailed("a") == HTTPError.encodingFailed("a"))
-        #expect(HTTPError.decodingFailed("a") == HTTPError.decodingFailed("a"))
-        #expect(HTTPError.connectionFailed("a") == HTTPError.connectionFailed("a"))
+        let urlErrorA1 = HTTPError.invalidURL("a")
+        let urlErrorA2 = HTTPError.invalidURL("a")
+        let urlErrorB = HTTPError.invalidURL("b")
+        #expect(urlErrorA1 == urlErrorA2)
+        #expect(urlErrorA1 != urlErrorB)
+
+        let invalidResponse1 = HTTPError.invalidResponse
+        let invalidResponse2 = HTTPError.invalidResponse
+        #expect(invalidResponse1 == invalidResponse2)
+
+        let statusCode404a = HTTPError.statusCode(404, data)
+        let statusCode404b = HTTPError.statusCode(404, data2)
+        let statusCode500 = HTTPError.statusCode(500, data)
+        #expect(statusCode404a == statusCode404b)
+        #expect(statusCode404a != statusCode500)
+
+        let timeout1 = HTTPError.timeout
+        let timeout2 = HTTPError.timeout
+        #expect(timeout1 == timeout2)
+
+        let encodingA1 = HTTPError.encodingFailed("a")
+        let encodingA2 = HTTPError.encodingFailed("a")
+        #expect(encodingA1 == encodingA2)
+
+        let decodingA1 = HTTPError.decodingFailed("a")
+        let decodingA2 = HTTPError.decodingFailed("a")
+        #expect(decodingA1 == decodingA2)
+
+        let connectionA1 = HTTPError.connectionFailed("a")
+        let connectionA2 = HTTPError.connectionFailed("a")
+        #expect(connectionA1 == connectionA2)
     }
 }
 
@@ -496,9 +520,15 @@ struct ConfigurationErrorTests {
 
     @Test("ConfigurationError equality")
     func configurationErrorEquality() {
-        #expect(ConfigurationError.fileNotFound("a") == ConfigurationError.fileNotFound("a"))
-        #expect(ConfigurationError.fileNotFound("a") != ConfigurationError.fileNotFound("b"))
-        #expect(ConfigurationError.invalidFormat("a") == ConfigurationError.invalidFormat("a"))
+        let fileNotFoundA1 = ConfigurationError.fileNotFound("a")
+        let fileNotFoundA2 = ConfigurationError.fileNotFound("a")
+        let fileNotFoundB = ConfigurationError.fileNotFound("b")
+        #expect(fileNotFoundA1 == fileNotFoundA2)
+        #expect(fileNotFoundA1 != fileNotFoundB)
+
+        let invalidFormatA1 = ConfigurationError.invalidFormat("a")
+        let invalidFormatA2 = ConfigurationError.invalidFormat("a")
+        #expect(invalidFormatA1 == invalidFormatA2)
     }
 }
 
@@ -532,10 +562,21 @@ struct XCStringsErrorTests {
 
     @Test("XCStringsError equality")
     func xcstringsErrorEquality() {
-        #expect(XCStringsError.fileNotFound("a") == XCStringsError.fileNotFound("a"))
-        #expect(XCStringsError.invalidJSON("a") == XCStringsError.invalidJSON("a"))
-        #expect(XCStringsError.invalidStructure("a") == XCStringsError.invalidStructure("a"))
-        #expect(XCStringsError.writeFailed("a") == XCStringsError.writeFailed("a"))
+        let fileNotFoundA1 = XCStringsError.fileNotFound("a")
+        let fileNotFoundA2 = XCStringsError.fileNotFound("a")
+        #expect(fileNotFoundA1 == fileNotFoundA2)
+
+        let invalidJSONA1 = XCStringsError.invalidJSON("a")
+        let invalidJSONA2 = XCStringsError.invalidJSON("a")
+        #expect(invalidJSONA1 == invalidJSONA2)
+
+        let invalidStructureA1 = XCStringsError.invalidStructure("a")
+        let invalidStructureA2 = XCStringsError.invalidStructure("a")
+        #expect(invalidStructureA1 == invalidStructureA2)
+
+        let writeFailedA1 = XCStringsError.writeFailed("a")
+        let writeFailedA2 = XCStringsError.writeFailed("a")
+        #expect(writeFailedA1 == writeFailedA2)
     }
 }
 
@@ -563,8 +604,11 @@ struct ContextErrorTests {
 
     @Test("ContextError equality")
     func contextErrorEquality() {
-        #expect(ContextError.sourceAnalysisFailed("a") == ContextError.sourceAnalysisFailed("a"))
-        #expect(ContextError.sourceAnalysisFailed("a") != ContextError.sourceAnalysisFailed("b"))
+        let errorA1 = ContextError.sourceAnalysisFailed("a")
+        let errorA2 = ContextError.sourceAnalysisFailed("a")
+        let errorB = ContextError.sourceAnalysisFailed("b")
+        #expect(errorA1 == errorA2)
+        #expect(errorA1 != errorB)
     }
 }
 
@@ -624,9 +668,13 @@ struct LegacyFormatErrorTests {
 
     @Test("LegacyFormatError equality")
     func legacyFormatErrorEquality() {
-        #expect(LegacyFormatError.fileNotFound("a") == LegacyFormatError.fileNotFound("a"))
-        #expect(LegacyFormatError.stringsParseError(line: 1, message: "a") ==
-            LegacyFormatError.stringsParseError(line: 1, message: "a"))
+        let fileNotFoundA1 = LegacyFormatError.fileNotFound("a")
+        let fileNotFoundA2 = LegacyFormatError.fileNotFound("a")
+        #expect(fileNotFoundA1 == fileNotFoundA2)
+
+        let parseErrorA1 = LegacyFormatError.stringsParseError(line: 1, message: "a")
+        let parseErrorA2 = LegacyFormatError.stringsParseError(line: 1, message: "a")
+        #expect(parseErrorA1 == parseErrorA2)
     }
 }
 

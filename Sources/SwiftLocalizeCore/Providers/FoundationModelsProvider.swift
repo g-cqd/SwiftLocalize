@@ -223,7 +223,8 @@ import Foundation
 
         private func mapGenerationError(_ error: LanguageModelSession.GenerationError) -> TranslationError {
             switch error {
-            case .guardrailViolation:
+            case .guardrailViolation,
+                 .refusal:
                 return .providerError(
                     provider: identifier,
                     message: "Content blocked by safety guardrails",
@@ -233,6 +234,37 @@ import Foundation
                 return .providerError(
                     provider: identifier,
                     message: "Input too long - exceeded context window",
+                )
+
+            case .rateLimited:
+                return .providerError(
+                    provider: identifier,
+                    message: "Rate limited - too many requests",
+                )
+
+            case .concurrentRequests:
+                return .providerError(
+                    provider: identifier,
+                    message: "Too many concurrent requests",
+                )
+
+            case .assetsUnavailable:
+                return .providerError(
+                    provider: identifier,
+                    message: "Model assets are not available",
+                )
+
+            case .unsupportedLanguageOrLocale:
+                return .providerError(
+                    provider: identifier,
+                    message: "Language or locale not supported",
+                )
+
+            case .decodingFailure,
+                 .unsupportedGuide:
+                return .providerError(
+                    provider: identifier,
+                    message: "Generation failed: \(error)",
                 )
 
             @unknown default:

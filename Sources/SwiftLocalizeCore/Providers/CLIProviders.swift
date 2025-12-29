@@ -107,10 +107,8 @@ public class CLIProviderBase: @unchecked Sendable {
             "/usr/bin/\(name)",
         ]
 
-        for path in searchPaths {
-            if FileManager.default.isExecutableFile(atPath: path) {
-                return path
-            }
+        if let foundPath = searchPaths.first(where: { FileManager.default.isExecutableFile(atPath: $0) }) {
+            return foundPath
         }
 
         // Try which command

@@ -4,8 +4,9 @@
 //
 
 import Foundation
-@testable import SwiftLocalizeCore
 import Testing
+
+@testable import SwiftLocalizeCore
 
 @Suite("XCStrings Parsing Tests")
 struct XCStringsTests {
@@ -33,7 +34,7 @@ struct XCStringsTests {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try #require(json.data(using: .utf8))
         let xcstrings = try XCStrings.parse(from: data)
 
         #expect(xcstrings.sourceLanguage == "en")
@@ -72,7 +73,7 @@ struct XCStringsTests {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try #require(json.data(using: .utf8))
         let xcstrings = try XCStrings.parse(from: data)
 
         let entry = try #require(xcstrings.strings["test_key"])
@@ -122,7 +123,7 @@ struct XCStringsTests {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try #require(json.data(using: .utf8))
         let xcstrings = try XCStrings.parse(from: data)
 
         let entry = try #require(xcstrings.strings["%lld items"])
@@ -166,7 +167,7 @@ struct XCStringsTests {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try #require(json.data(using: .utf8))
         let xcstrings = try XCStrings.parse(from: data)
 
         let entry = try #require(xcstrings.strings["Settings"])
@@ -204,7 +205,7 @@ struct XCStringsTests {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try #require(json.data(using: .utf8))
         let xcstrings = try XCStrings.parse(from: data)
 
         let entry = try #require(xcstrings.strings["%@ has %lld messages"])
@@ -259,11 +260,11 @@ struct XCStringsTests {
         )
 
         let data = try xcstrings.encode(prettyPrint: true, sortKeys: true)
-        let jsonString = String(data: data, encoding: .utf8)!
+        let jsonString = try #require(String(data: data, encoding: .utf8))
 
         // Sorted keys means "A" should come before "B"
-        let aIndex = jsonString.range(of: "\"A\"")!.lowerBound
-        let bIndex = jsonString.range(of: "\"B\"")!.lowerBound
+        let aIndex = try #require(jsonString.range(of: "\"A\"")).lowerBound
+        let bIndex = try #require(jsonString.range(of: "\"B\"")).lowerBound
         #expect(aIndex < bIndex)
 
         // Pretty printed should have newlines
@@ -371,7 +372,7 @@ struct XCStringsTests {
     @Test("Parse invalid JSON throws error")
     func parseInvalidJSON() throws {
         let invalidJSON = "{ not valid json }"
-        let data = invalidJSON.data(using: .utf8)!
+        let data = try #require(invalidJSON.data(using: .utf8))
 
         #expect(throws: (any Error).self) {
             try XCStrings.parse(from: data)
@@ -386,7 +387,7 @@ struct XCStringsTests {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try #require(json.data(using: .utf8))
 
         #expect(throws: (any Error).self) {
             try XCStrings.parse(from: data)

@@ -142,6 +142,7 @@ public struct ConfigurationLoader: Sendable {
         switch ext {
         case "json":
             return try parseJSON(data: data)
+
         case "yaml",
              "yml":
             throw .invalidFormat("YAML configuration files are not yet supported. Please use JSON.")

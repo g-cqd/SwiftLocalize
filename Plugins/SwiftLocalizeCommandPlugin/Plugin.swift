@@ -163,10 +163,8 @@ enum PluginError: Error, CustomStringConvertible {
             var results: [URL] = []
 
             for target in project.targets {
-                for file in target.inputFiles {
-                    if file.url.pathExtension == "xcstrings" {
-                        results.append(file.url)
-                    }
+                for file in target.inputFiles where file.url.pathExtension == "xcstrings" {
+                    results.append(file.url)
                 }
             }
 

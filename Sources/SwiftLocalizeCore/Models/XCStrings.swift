@@ -225,11 +225,13 @@ public extension XCStrings {
 public extension XCStrings {
     /// Get all string keys that need translation for a given language.
     func keysNeedingTranslation(for language: String) -> [String] {
-        strings.compactMap { key, entry in
-            guard entry.shouldTranslate != false else { return nil }
-            guard entry.localizations?[language]?.stringUnit == nil else { return nil }
-            return key
-        }.sorted()
+        strings
+            .compactMap { key, entry in
+                guard entry.shouldTranslate != false else { return nil }
+                guard entry.localizations?[language]?.stringUnit == nil else { return nil }
+                return key
+            }
+            .sorted()
     }
 
     /// Get all languages present in the catalog.

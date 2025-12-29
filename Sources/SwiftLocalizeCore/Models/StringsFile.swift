@@ -257,10 +257,12 @@ public actor StringsFileParser {
                     index += 1
 
                     if commentLine.contains("*/") {
-                        let endIdx = commentLine.range(of: "*/")!.lowerBound
-                        let lastPart = String(commentLine[..<endIdx]).trimmingCharacters(in: .whitespaces)
-                        if !lastPart.isEmpty {
-                            commentLines.append(lastPart)
+                        if let endRange = commentLine.range(of: "*/") {
+                            let lastPart = String(commentLine[..<endRange.lowerBound])
+                                .trimmingCharacters(in: .whitespaces)
+                            if !lastPart.isEmpty {
+                                commentLines.append(lastPart)
+                            }
                         }
                         break
                     } else {

@@ -4,8 +4,9 @@
 //
 
 import Foundation
-@testable import SwiftLocalizeCore
 import Testing
+
+@testable import SwiftLocalizeCore
 
 // MARK: - StringsFileTests
 

@@ -101,81 +101,151 @@ public actor ChangeDetector {
             return forceRetranslateAll(xcstrings: xcstrings, targetLanguages: targetLanguages)
         }
 
+        var state = DetectionState()
+
+        for (key, entry) in xcstrings.strings {
+            processEntry(
+                key: key,
+                entry: entry,
+                xcstrings: xcstrings,
+                targetLanguages: targetLanguages,
+                state: &state,
+            )
+        }
+
+        return ChangeDetectionResult(
+            stringsToTranslate: state.needsTranslation,
+            unchanged: state.unchanged,
+            newStrings: state.newStrings,
+            modifiedStrings: state.modifiedStrings,
+        )
+    }
+
+    private struct DetectionState {
         var needsTranslation: [String: Set<LanguageCode>] = [:]
         var unchanged: [String] = []
         var newStrings: [String] = []
         var modifiedStrings: [String] = []
+    }
 
-        for (key, entry) in xcstrings.strings {
-            // Get the source value
-            guard let sourceLocalization = entry.localizations?[xcstrings.sourceLanguage],
-                  let sourceValue = sourceLocalization.stringUnit?.value
-            else {
-                // Use key as fallback source
-                let sourceHash = computeHash(key)
-                let missing = findMissingLanguages(
-                    key: key,
-                    sourceHash: sourceHash,
-                    entry: entry,
-                    targetLanguages: targetLanguages,
-                    xcstrings: xcstrings,
-                )
-                if !missing.isEmpty {
-                    needsTranslation[key] = missing
-                    if cache.entries[key] == nil {
-                        newStrings.append(key)
-                    }
-                }
-                continue
-            }
-
-            let sourceHash = computeHash(sourceValue)
-
-            // Check if this is a new or modified string
-            if let cached = cache.entries[key] {
-                if cached.sourceHash != sourceHash {
-                    // Source changed - needs retranslation for all languages
-                    needsTranslation[key] = Set(targetLanguages)
-                    modifiedStrings.append(key)
-                } else {
-                    // Source unchanged - check which languages are missing
-                    let missing = findMissingLanguages(
-                        key: key,
-                        sourceHash: sourceHash,
-                        entry: entry,
-                        targetLanguages: targetLanguages,
-                        xcstrings: xcstrings,
-                    )
-                    if missing.isEmpty {
-                        unchanged.append(key)
-                    } else {
-                        needsTranslation[key] = missing
-                    }
-                }
-            } else {
-                // New string - needs translation for all languages
-                let missing = findMissingLanguages(
-                    key: key,
-                    sourceHash: sourceHash,
-                    entry: entry,
-                    targetLanguages: targetLanguages,
-                    xcstrings: xcstrings,
-                )
-                if !missing.isEmpty {
-                    needsTranslation[key] = missing
-                    newStrings.append(key)
-                } else {
-                    unchanged.append(key)
-                }
-            }
+    private func processEntry(
+        key: String,
+        entry: StringEntry,
+        xcstrings: XCStrings,
+        targetLanguages: [LanguageCode],
+        state: inout DetectionState,
+    ) {
+        // Get the source value
+        guard let sourceLocalization = entry.localizations?[xcstrings.sourceLanguage],
+              let sourceValue = sourceLocalization.stringUnit?.value
+        else {
+            processKeyWithoutSource(
+                key: key,
+                entry: entry,
+                xcstrings: xcstrings,
+                targetLanguages: targetLanguages,
+                state: &state
+            )
+            return
         }
 
-        return ChangeDetectionResult(
-            stringsToTranslate: needsTranslation,
-            unchanged: unchanged,
-            newStrings: newStrings,
-            modifiedStrings: modifiedStrings,
+        let sourceHash = computeHash(sourceValue)
+
+        // Check if this is a new or modified string
+        if let cached = cache.entries[key] {
+            processCachedEntry(
+                key: key,
+                entry: entry,
+                xcstrings: xcstrings,
+                targetLanguages: targetLanguages,
+                sourceHash: sourceHash,
+                cached: cached,
+                state: &state
+            )
+        } else {
+            processNewEntry(
+                key: key,
+                entry: entry,
+                xcstrings: xcstrings,
+                targetLanguages: targetLanguages,
+                sourceHash: sourceHash,
+                state: &state
+            )
+        }
+    }
+
+    private func processKeyWithoutSource(
+        key: String,
+        entry: StringEntry,
+        xcstrings: XCStrings,
+        targetLanguages: [LanguageCode],
+        state: inout DetectionState,
+    ) {
+        let sourceHash = computeHash(key)
+        let missing = findMissingLanguages(
+            key: key,
+            sourceHash: sourceHash,
+            entry: entry,
+            targetLanguages: targetLanguages,
+            xcstrings: xcstrings
         )
+        if !missing.isEmpty {
+            state.needsTranslation[key] = missing
+            if cache.entries[key] == nil {
+                state.newStrings.append(key)
+            }
+        }
+    }
+
+    private func processCachedEntry(
+        key: String,
+        entry: StringEntry,
+        xcstrings: XCStrings,
+        targetLanguages: [LanguageCode],
+        sourceHash: String,
+        cached: CacheEntry,
+        state: inout DetectionState,
+    ) {
+        if cached.sourceHash != sourceHash {
+            state.needsTranslation[key] = Set(targetLanguages)
+            state.modifiedStrings.append(key)
+        } else {
+            let missing = findMissingLanguages(
+                key: key,
+                sourceHash: sourceHash,
+                entry: entry,
+                targetLanguages: targetLanguages,
+                xcstrings: xcstrings
+            )
+            if missing.isEmpty {
+                state.unchanged.append(key)
+            } else {
+                state.needsTranslation[key] = missing
+            }
+        }
+    }
+
+    private func processNewEntry(
+        key: String,
+        entry: StringEntry,
+        xcstrings: XCStrings,
+        targetLanguages: [LanguageCode],
+        sourceHash: String,
+        state: inout DetectionState,
+    ) {
+        let missing = findMissingLanguages(
+            key: key,
+            sourceHash: sourceHash,
+            entry: entry,
+            targetLanguages: targetLanguages,
+            xcstrings: xcstrings
+        )
+        if !missing.isEmpty {
+            state.needsTranslation[key] = missing
+            state.newStrings.append(key)
+        } else {
+            state.unchanged.append(key)
+        }
     }
 
     // MARK: - Cache Updates

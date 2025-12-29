@@ -6,8 +6,9 @@
 //
 
 import Foundation
-@testable import SwiftLocalizeCore
 import Testing
+
+@testable import SwiftLocalizeCore
 
 // MARK: - IntegrationMockProvider
 
@@ -639,7 +640,7 @@ struct XCStringsRoundTripTests {
         var xcstrings = try decoder.decode(XCStrings.self, from: data)
 
         // Add German translation
-        var entry = xcstrings.strings["greeting"]!
+        var entry = try #require(xcstrings.strings["greeting"])
         var localizations = entry.localizations ?? [:]
         localizations["de"] = Localization(stringUnit: StringUnit(state: .translated, value: "Hallo"))
         entry.localizations = localizations
@@ -797,7 +798,7 @@ struct EndToEndWorkflowTests {
         // 5. Apply translations to XCStrings
         for (index, stringEntry) in stringsToTranslate.enumerated() {
             let translation = translationResults[index].translated
-            var entry = xcstrings.strings[stringEntry.key]!
+            guard var entry = xcstrings.strings[stringEntry.key] else { continue }
             var localizations = entry.localizations ?? [:]
             localizations["fr"] = Localization(
                 stringUnit: StringUnit(state: .translated, value: translation),

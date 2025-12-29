@@ -147,13 +147,15 @@ public actor TranslationMemory {
         // Check exact match first
         if let entry = entries[text],
            let translation = entry.translations[targetLanguage] {
-            return [TMMatch(
-                source: text,
-                translation: translation.value,
-                similarity: 1.0,
-                provider: translation.provider,
-                humanReviewed: translation.reviewedByHuman,
-            )]
+            return [
+                TMMatch(
+                    source: text,
+                    translation: translation.value,
+                    similarity: 1.0,
+                    provider: translation.provider,
+                    humanReviewed: translation.reviewedByHuman,
+                ),
+            ]
         }
 
         // Fuzzy matching

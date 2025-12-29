@@ -333,14 +333,18 @@ public extension TranslationPromptContext {
         parts.append("You are a translator for iOS apps. Target: \(targetLanguage)")
 
         if !glossaryTerms.isEmpty {
-            let termsList = glossaryTerms.prefix(10).map { term in
-                if term.doNotTranslate {
-                    return "\(term.term) (keep)"
-                } else if let trans = term.translations[targetLanguage] {
-                    return "\(term.term)=\(trans)"
+            let termsList = glossaryTerms
+                .prefix(10)
+                .map { term in
+                    if term.doNotTranslate {
+                        return "\(term.term) (keep)"
+                    } else if let trans = term.translations[targetLanguage] {
+                        return "\(term.term)=\(trans)"
+                    }
+                    return nil
                 }
-                return nil
-            }.compactMap(\.self).joined(separator: ", ")
+                .compactMap(\.self)
+                .joined(separator: ", ")
             if !termsList.isEmpty {
                 parts.append("Terms: \(termsList)")
             }

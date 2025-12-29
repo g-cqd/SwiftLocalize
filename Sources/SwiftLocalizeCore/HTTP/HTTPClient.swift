@@ -150,6 +150,7 @@ public actor HTTPClient {
             switch urlError.code {
             case .timedOut:
                 throw .timeout
+
             case .cannotConnectToHost,
                  .networkConnectionLost,
                  .notConnectedToInternet:
