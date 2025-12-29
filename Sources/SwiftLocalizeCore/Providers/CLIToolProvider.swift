@@ -13,14 +13,43 @@ import Foundation
 /// for translation. The tool receives the translation prompt via stdin and returns
 /// the translation result via stdout.
 public final class CLIToolProvider: TranslationProvider, @unchecked Sendable {
-    public let identifier: String
-    public let displayName: String
+    // MARK: Lifecycle
 
-    private let config: CLIToolProviderConfig
-    private let promptBuilder: TranslationPromptBuilder
+    public init(config: CLIToolProviderConfig) {
+        self.config = config
+        identifier = config.identifier
+        displayName = config.displayName
+        promptBuilder = TranslationPromptBuilder()
+    }
+
+    // MARK: Public
 
     /// Configuration for the CLI tool provider.
     public struct CLIToolProviderConfig: Sendable {
+        // MARK: Lifecycle
+
+        public init(
+            identifier: String,
+            displayName: String,
+            toolPath: String,
+            arguments: [String] = [],
+            environment: [String: String] = [:],
+            timeout: TimeInterval = 120,
+            usesStdin: Bool = true,
+            autoConfirm: Bool = true,
+        ) {
+            self.identifier = identifier
+            self.displayName = displayName
+            self.toolPath = toolPath
+            self.arguments = arguments
+            self.environment = environment
+            self.timeout = timeout
+            self.usesStdin = usesStdin
+            self.autoConfirm = autoConfirm
+        }
+
+        // MARK: Public
+
         /// Provider identifier.
         public let identifier: String
 
@@ -45,82 +74,57 @@ public final class CLIToolProvider: TranslationProvider, @unchecked Sendable {
         /// Whether to automatically confirm prompts (e.g., -y flag).
         public let autoConfirm: Bool
 
-        public init(
-            identifier: String,
-            displayName: String,
-            toolPath: String,
-            arguments: [String] = [],
-            environment: [String: String] = [:],
-            timeout: TimeInterval = 120,
-            usesStdin: Bool = true,
-            autoConfirm: Bool = true
-        ) {
-            self.identifier = identifier
-            self.displayName = displayName
-            self.toolPath = toolPath
-            self.arguments = arguments
-            self.environment = environment
-            self.timeout = timeout
-            self.usesStdin = usesStdin
-            self.autoConfirm = autoConfirm
-        }
-
         /// Create config for the Gemini CLI tool.
         public static func geminiCLI(
             path: String = "/opt/homebrew/bin/gemini",
-            arguments: [String] = ["-y"]
+            arguments: [String] = ["-y"],
         ) -> CLIToolProviderConfig {
             CLIToolProviderConfig(
                 identifier: "cli-gemini",
                 displayName: "Gemini CLI",
                 toolPath: path,
-                arguments: arguments
+                arguments: arguments,
             )
         }
 
         /// Create config for GitHub Copilot CLI.
         public static func copilotCLI(
             path: String = "/usr/local/bin/gh",
-            arguments: [String] = ["copilot", "suggest"]
+            arguments: [String] = ["copilot", "suggest"],
         ) -> CLIToolProviderConfig {
             CLIToolProviderConfig(
                 identifier: "cli-copilot",
                 displayName: "GitHub Copilot CLI",
                 toolPath: path,
-                arguments: arguments
+                arguments: arguments,
             )
         }
 
         /// Create config from provider configuration.
         public static func from(
             providerConfig: ProviderConfig?,
-            providerName: ProviderName
+            providerName: ProviderName,
         ) -> CLIToolProviderConfig? {
             guard let path = providerConfig?.path else { return nil }
 
             let identifier = providerName.rawValue
-            let displayName: String
-            switch providerName {
-            case .cliGemini: displayName = "Gemini CLI"
-            case .cliCopilot: displayName = "GitHub Copilot CLI"
-            default: displayName = "CLI Tool"
+            let displayName = switch providerName {
+            case .cliGemini: "Gemini CLI"
+            case .cliCopilot: "GitHub Copilot CLI"
+            default: "CLI Tool"
             }
 
             return CLIToolProviderConfig(
                 identifier: identifier,
                 displayName: displayName,
                 toolPath: path,
-                arguments: providerConfig?.args ?? []
+                arguments: providerConfig?.args ?? [],
             )
         }
     }
 
-    public init(config: CLIToolProviderConfig) {
-        self.config = config
-        self.identifier = config.identifier
-        self.displayName = config.displayName
-        self.promptBuilder = TranslationPromptBuilder()
-    }
+    public let identifier: String
+    public let displayName: String
 
     // MARK: - TranslationProvider
 
@@ -137,18 +141,18 @@ public final class CLIToolProvider: TranslationProvider, @unchecked Sendable {
         _ strings: [String],
         from source: LanguageCode,
         to target: LanguageCode,
-        context: TranslationContext?
+        context: TranslationContext?,
     ) async throws -> [TranslationResult] {
         guard !strings.isEmpty else { return [] }
 
         let systemPrompt = promptBuilder.buildSystemPrompt(
             context: context,
-            targetLanguage: target
+            targetLanguage: target,
         )
         let userPrompt = promptBuilder.buildUserPrompt(
             strings: strings,
             context: context,
-            targetLanguage: target
+            targetLanguage: target,
         )
 
         let fullPrompt = """
@@ -164,9 +168,14 @@ public final class CLIToolProvider: TranslationProvider, @unchecked Sendable {
         return try promptBuilder.parseResponse(
             output,
             originalStrings: strings,
-            provider: identifier
+            provider: identifier,
         )
     }
+
+    // MARK: Private
+
+    private let config: CLIToolProviderConfig
+    private let promptBuilder: TranslationPromptBuilder
 
     // MARK: - CLI Execution
 
@@ -218,14 +227,14 @@ public final class CLIToolProvider: TranslationProvider, @unchecked Sendable {
                     let errorMessage = String(data: errorData, encoding: .utf8) ?? "Unknown error"
                     continuation.resume(throwing: TranslationError.providerError(
                         provider: identifier,
-                        message: "CLI tool failed with exit code \(process.terminationStatus): \(errorMessage)"
+                        message: "CLI tool failed with exit code \(process.terminationStatus): \(errorMessage)",
                     ))
                     return
                 }
 
                 guard let output = String(data: outputData, encoding: .utf8) else {
                     continuation.resume(throwing: TranslationError.invalidResponse(
-                        "CLI tool output is not valid UTF-8"
+                        "CLI tool output is not valid UTF-8",
                     ))
                     return
                 }
@@ -235,7 +244,7 @@ public final class CLIToolProvider: TranslationProvider, @unchecked Sendable {
                 timeoutTask.cancel()
                 continuation.resume(throwing: TranslationError.providerError(
                     provider: identifier,
-                    message: "Failed to run CLI tool: \(error.localizedDescription)"
+                    message: "Failed to run CLI tool: \(error.localizedDescription)",
                 ))
             }
         }

@@ -4,14 +4,13 @@
 //
 
 import Foundation
-import Testing
 @testable import SwiftLocalizeCore
+import Testing
 
-// MARK: - StringsFile Tests
+// MARK: - StringsFileTests
 
 @Suite("StringsFile Parsing Tests")
 struct StringsFileTests {
-
     // MARK: - Parsing
 
     @Test("Parse simple .strings content")
@@ -138,7 +137,7 @@ struct StringsFileTests {
             entries: [
                 "Hello": StringsEntry(value: "Hello", comment: "Greeting"),
                 "Goodbye": StringsEntry(value: "Goodbye"),
-            ]
+            ],
         )
 
         let parser = StringsFileParser()
@@ -161,7 +160,7 @@ struct StringsFileTests {
             language: "en",
             entries: [
                 "special": StringsEntry(value: "Line1\nLine2\t\"quoted\""),
-            ]
+            ],
         )
 
         let parser = StringsFileParser()
@@ -182,7 +181,7 @@ struct StringsFileTests {
                 "Zebra": StringsEntry(value: "Zebra"),
                 "Apple": StringsEntry(value: "Apple"),
                 "Mango": StringsEntry(value: "Mango"),
-            ]
+            ],
         )
 
         #expect(file.sortedKeys == ["Apple", "Mango", "Zebra"])
@@ -215,11 +214,10 @@ struct StringsFileTests {
     }
 }
 
-// MARK: - StringsdictFile Tests
+// MARK: - StringsdictFileTests
 
 @Suite("StringsdictFile Parsing Tests")
 struct StringsdictFileTests {
-
     // MARK: - Parsing
 
     @Test("Parse simple plural stringsdict")
@@ -300,11 +298,11 @@ struct StringsdictFileTests {
                             pluralForms: [
                                 .one: "%lld item",
                                 .other: "%lld items",
-                            ]
+                            ],
                         ),
-                    ]
+                    ],
                 ),
-            ]
+            ],
         )
 
         // Round-trip by writing to temp file
@@ -397,11 +395,10 @@ struct StringsdictFileTests {
     }
 }
 
-// MARK: - LocalizationCatalog Tests
+// MARK: - LocalizationCatalogTests
 
 @Suite("LocalizationCatalog Tests")
 struct LocalizationCatalogTests {
-
     @Test("XCStrings conforms to LocalizationCatalog")
     func xcstringsConformsToProtocol() {
         let xcstrings = XCStrings(
@@ -411,9 +408,9 @@ struct LocalizationCatalogTests {
                     localizations: [
                         "en": Localization(value: "Hello"),
                         "fr": Localization(value: "Bonjour"),
-                    ]
+                    ],
                 ),
-            ]
+            ],
         )
 
         let catalog: any LocalizationCatalog = xcstrings
@@ -434,9 +431,9 @@ struct LocalizationCatalogTests {
                 "Test": StringEntry(
                     localizations: [
                         "en": Localization(value: "Test"),
-                    ]
+                    ],
                 ),
-            ]
+            ],
         )
 
         let unified = UnifiedCatalog(xcstrings)
@@ -452,7 +449,7 @@ struct LocalizationCatalogTests {
             language: "fr",
             entries: [
                 "Hello": StringsEntry(value: "Bonjour"),
-            ]
+            ],
         )
 
         let unified = UnifiedCatalog(stringsFile, sourceLanguage: "en")
@@ -469,19 +466,19 @@ struct LocalizationCatalogTests {
             entries: [
                 "Hello": StringsEntry(value: "Hello"),
                 "Goodbye": StringsEntry(value: "Goodbye"),
-            ]
+            ],
         )
 
         let frFile = StringsFile(
             language: "fr",
             entries: [
                 "Hello": StringsEntry(value: "Bonjour"),
-            ]
+            ],
         )
 
         let catalog = MultiLanguageStringsCatalog(
             sourceLanguage: "en",
-            files: [enFile, frFile]
+            files: [enFile, frFile],
         )
 
         #expect(catalog.allKeys.count == 2)
@@ -505,11 +502,10 @@ struct LocalizationCatalogTests {
     }
 }
 
-// MARK: - FormatMigrator Tests
+// MARK: - FormatMigratorTests
 
 @Suite("FormatMigrator Tests")
 struct FormatMigratorTests {
-
     @Test("Migrate strings to xcstrings")
     func migrateStringsToXCStrings() async throws {
         let enFile = StringsFile(
@@ -517,7 +513,7 @@ struct FormatMigratorTests {
             entries: [
                 "Hello": StringsEntry(value: "Hello", comment: "Greeting"),
                 "Goodbye": StringsEntry(value: "Goodbye"),
-            ]
+            ],
         )
 
         let frFile = StringsFile(
@@ -525,13 +521,13 @@ struct FormatMigratorTests {
             entries: [
                 "Hello": StringsEntry(value: "Bonjour"),
                 "Goodbye": StringsEntry(value: "Au revoir"),
-            ]
+            ],
         )
 
         let migrator = FormatMigrator()
         let xcstrings = await migrator.migrateToXCStrings(
             stringsFiles: [enFile, frFile],
-            sourceLanguage: "en"
+            sourceLanguage: "en",
         )
 
         #expect(xcstrings.sourceLanguage == "en")
@@ -551,15 +547,15 @@ struct FormatMigratorTests {
                     localizations: [
                         "en": Localization(value: "Hello"),
                         "fr": Localization(value: "Bonjour"),
-                    ]
+                    ],
                 ),
-            ]
+            ],
         )
 
         let migrator = FormatMigrator()
         let (stringsFile, stringsdictFile) = await migrator.migrateToLegacy(
             xcstrings: xcstrings,
-            language: "fr"
+            language: "fr",
         )
 
         #expect(stringsFile.language == "fr")
@@ -581,18 +577,18 @@ struct FormatMigratorTests {
                             pluralForms: [
                                 .one: "%lld item",
                                 .other: "%lld items",
-                            ]
+                            ],
                         ),
-                    ]
+                    ],
                 ),
-            ]
+            ],
         )
 
         let migrator = FormatMigrator()
         let xcstrings = await migrator.migrateToXCStrings(
             stringsFiles: [],
             stringsdictFiles: [stringsdictFile],
-            sourceLanguage: "en"
+            sourceLanguage: "en",
         )
 
         #expect(xcstrings.strings.count == 1)

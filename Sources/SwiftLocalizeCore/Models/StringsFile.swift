@@ -5,7 +5,7 @@
 
 import Foundation
 
-// MARK: - Strings File Model
+// MARK: - StringsFile
 
 /// Represents a legacy .strings localization file.
 ///
@@ -17,6 +17,20 @@ import Foundation
 ///
 /// They can be encoded as UTF-8 or UTF-16 (with BOM).
 public struct StringsFile: Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        language: String,
+        entries: [String: StringsEntry] = [:],
+        encoding: String.Encoding = .utf8,
+    ) {
+        self.language = language
+        self.entries = entries
+        self.encoding = encoding
+    }
+
+    // MARK: Public
+
     /// The language code this file represents.
     public var language: String
 
@@ -26,47 +40,44 @@ public struct StringsFile: Sendable, Equatable {
     /// The file encoding detected or used for writing.
     public var encoding: String.Encoding
 
-    public init(
-        language: String,
-        entries: [String: StringsEntry] = [:],
-        encoding: String.Encoding = .utf8
-    ) {
-        self.language = language
-        self.entries = entries
-        self.encoding = encoding
-    }
-
     /// Get all keys sorted alphabetically.
     public var sortedKeys: [String] {
         entries.keys.sorted()
     }
 }
 
-// MARK: - Strings Entry
+// MARK: - StringsEntry
 
 /// A single entry in a .strings file.
 public struct StringsEntry: Sendable, Equatable {
-    /// The translated or source string value.
-    public var value: String
-
-    /// Optional developer comment.
-    public var comment: String?
+    // MARK: Lifecycle
 
     public init(value: String, comment: String? = nil) {
         self.value = value
         self.comment = comment
     }
+
+    // MARK: Public
+
+    /// The translated or source string value.
+    public var value: String
+
+    /// Optional developer comment.
+    public var comment: String?
 }
 
-// MARK: - Strings File Parser
+// MARK: - StringsFileParser
 
 /// Parses and writes legacy .strings files.
 ///
 /// Handles both UTF-8 and UTF-16 encoded files with proper BOM detection.
 /// Preserves comments and maintains round-trip fidelity.
 public actor StringsFileParser {
+    // MARK: Lifecycle
 
     public init() {}
+
+    // MARK: Public
 
     // MARK: - Parsing
 
@@ -91,7 +102,7 @@ public actor StringsFileParser {
         return StringsFile(
             language: lang,
             entries: entries,
-            encoding: encoding
+            encoding: encoding,
         )
     }
 
@@ -158,6 +169,8 @@ public actor StringsFileParser {
         return lines.joined(separator: "\n")
     }
 
+    // MARK: Private
+
     // MARK: - Encoding Detection
 
     /// Detect file encoding from data.
@@ -169,7 +182,7 @@ public actor StringsFileParser {
             let bytes = [UInt8](data.prefix(2))
 
             // UTF-16 BE BOM: FE FF
-            if bytes[0] == 0xFE && bytes[1] == 0xFF {
+            if bytes[0] == 0xFE, bytes[1] == 0xFF {
                 let textData = data.dropFirst(2)
                 guard let string = String(data: Data(textData), encoding: .utf16BigEndian) else {
                     throw LegacyFormatError.encodingDetectionFailed(path)
@@ -178,7 +191,7 @@ public actor StringsFileParser {
             }
 
             // UTF-16 LE BOM: FF FE
-            if bytes[0] == 0xFF && bytes[1] == 0xFE {
+            if bytes[0] == 0xFF, bytes[1] == 0xFE {
                 let textData = data.dropFirst(2)
                 guard let string = String(data: Data(textData), encoding: .utf16LittleEndian) else {
                     throw LegacyFormatError.encodingDetectionFailed(path)
@@ -191,7 +204,7 @@ public actor StringsFileParser {
         var textData = data
         if data.count >= 3 {
             let bytes = [UInt8](data.prefix(3))
-            if bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF {
+            if bytes[0] == 0xEF, bytes[1] == 0xBB, bytes[2] == 0xBF {
                 textData = data.dropFirst(3)
             }
         }
@@ -222,11 +235,11 @@ public actor StringsFileParser {
             if line.isEmpty { continue }
 
             // Single-line comment /* ... */
-            if line.hasPrefix("/*") && line.hasSuffix("*/") {
+            if line.hasPrefix("/*"), line.hasSuffix("*/") {
                 let commentStart = line.index(line.startIndex, offsetBy: 2)
                 let commentEnd = line.index(line.endIndex, offsetBy: -2)
                 if commentStart < commentEnd {
-                    currentComment = String(line[commentStart..<commentEnd]).trimmingCharacters(in: .whitespaces)
+                    currentComment = String(line[commentStart ..< commentEnd]).trimmingCharacters(in: .whitespaces)
                 }
                 continue
             }
@@ -289,23 +302,23 @@ public actor StringsFileParser {
         let key = try parseQuotedString(chars: &chars, index: &idx, lineNumber: lineNumber)
 
         // Skip whitespace
-        while idx < chars.count && chars[idx].isWhitespace {
+        while idx < chars.count, chars[idx].isWhitespace {
             idx += 1
         }
 
         // Expect =
-        guard idx < chars.count && chars[idx] == "=" else {
+        guard idx < chars.count, chars[idx] == "=" else {
             throw LegacyFormatError.stringsParseError(line: lineNumber, message: "Expected '=' after key")
         }
         idx += 1
 
         // Skip whitespace
-        while idx < chars.count && chars[idx].isWhitespace {
+        while idx < chars.count, chars[idx].isWhitespace {
             idx += 1
         }
 
         // Parse value
-        guard idx < chars.count && chars[idx] == "\"" else {
+        guard idx < chars.count, chars[idx] == "\"" else {
             throw LegacyFormatError.stringsParseError(line: lineNumber, message: "Expected opening quote for value")
         }
         idx += 1
@@ -326,7 +339,7 @@ public actor StringsFileParser {
                 return String(result)
             }
 
-            if char == "\\" && index + 1 < chars.count {
+            if char == "\\", index + 1 < chars.count {
                 index += 1
                 let escaped = chars[index]
                 switch escaped {
@@ -335,11 +348,12 @@ public actor StringsFileParser {
                 case "t": result.append("\t")
                 case "\\": result.append("\\")
                 case "\"": result.append("\"")
-                case "U", "u":
+                case "u",
+                     "U":
                     // Unicode escape: \U0000 or \u0000
                     index += 1
                     var hexChars: [Character] = []
-                    while index < chars.count && hexChars.count < 4 && chars[index].isHexDigit {
+                    while index < chars.count, hexChars.count < 4, chars[index].isHexDigit {
                         hexChars.append(chars[index])
                         index += 1
                     }
@@ -349,6 +363,7 @@ public actor StringsFileParser {
                         result.append(Character(scalar))
                     }
                     continue
+
                 default:
                     result.append(char)
                     result.append(escaped)

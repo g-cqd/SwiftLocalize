@@ -6,7 +6,7 @@
 
 import Foundation
 
-// MARK: - Project Types
+// MARK: - ProjectType
 
 /// Type of project detected.
 public enum ProjectType: String, Sendable, Codable, Equatable {
@@ -16,6 +16,8 @@ public enum ProjectType: String, Sendable, Codable, Equatable {
     case monorepo
     case unknown
 }
+
+// MARK: - TargetType
 
 /// Type of localization target.
 public enum TargetType: String, Sendable, Codable, Equatable {
@@ -28,10 +30,26 @@ public enum TargetType: String, Sendable, Codable, Equatable {
     case unknown
 }
 
-// MARK: - Project Structure
+// MARK: - ProjectStructure
 
 /// Represents the detected project structure.
 public struct ProjectStructure: Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        type: ProjectType,
+        rootURL: URL,
+        targets: [LocalizationTarget],
+        packages: [PackageInfo] = [],
+    ) {
+        self.type = type
+        self.rootURL = rootURL
+        self.targets = targets
+        self.packages = packages
+    }
+
+    // MARK: Public
+
     /// The type of project.
     public let type: ProjectType
 
@@ -43,24 +61,32 @@ public struct ProjectStructure: Sendable, Equatable {
 
     /// All detected packages (for monorepos).
     public let packages: [PackageInfo]
-
-    public init(
-        type: ProjectType,
-        rootURL: URL,
-        targets: [LocalizationTarget],
-        packages: [PackageInfo] = []
-    ) {
-        self.type = type
-        self.rootURL = rootURL
-        self.targets = targets
-        self.packages = packages
-    }
 }
 
-// MARK: - Localization Target
+// MARK: - LocalizationTarget
 
 /// A target containing localization files.
 public struct LocalizationTarget: Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        name: String,
+        type: TargetType,
+        xcstringsURL: URL,
+        bundleIdentifier: String? = nil,
+        defaultLocalization: String = "en",
+        parentPackage: String? = nil,
+    ) {
+        self.name = name
+        self.type = type
+        self.xcstringsURL = xcstringsURL
+        self.bundleIdentifier = bundleIdentifier
+        self.defaultLocalization = defaultLocalization
+        self.parentPackage = parentPackage
+    }
+
+    // MARK: Public
+
     /// Target name.
     public let name: String
 
@@ -83,28 +109,28 @@ public struct LocalizationTarget: Sendable, Equatable {
     public var relativePath: String {
         xcstringsURL.path
     }
-
-    public init(
-        name: String,
-        type: TargetType,
-        xcstringsURL: URL,
-        bundleIdentifier: String? = nil,
-        defaultLocalization: String = "en",
-        parentPackage: String? = nil
-    ) {
-        self.name = name
-        self.type = type
-        self.xcstringsURL = xcstringsURL
-        self.bundleIdentifier = bundleIdentifier
-        self.defaultLocalization = defaultLocalization
-        self.parentPackage = parentPackage
-    }
 }
 
-// MARK: - Package Info
+// MARK: - PackageInfo
 
 /// Information about a Swift package.
 public struct PackageInfo: Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        name: String,
+        url: URL,
+        isLocal: Bool = true,
+        localizationTargets: [String] = [],
+    ) {
+        self.name = name
+        self.url = url
+        self.isLocal = isLocal
+        self.localizationTargets = localizationTargets
+    }
+
+    // MARK: Public
+
     /// Package name.
     public let name: String
 
@@ -116,21 +142,9 @@ public struct PackageInfo: Sendable, Equatable {
 
     /// Localization targets in this package.
     public let localizationTargets: [String]
-
-    public init(
-        name: String,
-        url: URL,
-        isLocal: Bool = true,
-        localizationTargets: [String] = []
-    ) {
-        self.name = name
-        self.url = url
-        self.isLocal = isLocal
-        self.localizationTargets = localizationTargets
-    }
 }
 
-// MARK: - Project Structure Detector
+// MARK: - ProjectStructureDetector
 
 /// Detects project layout and localization targets.
 ///
@@ -150,11 +164,13 @@ public struct PackageInfo: Sendable, Equatable {
 /// }
 /// ```
 public actor ProjectStructureDetector {
-    private let fileManager: FileManager
+    // MARK: Lifecycle
 
     public init(fileManager: FileManager = .default) {
         self.fileManager = fileManager
     }
+
+    // MARK: Public
 
     // MARK: - Detection
 
@@ -197,7 +213,7 @@ public actor ProjectStructureDetector {
             type: type,
             rootURL: rootURL,
             targets: targets,
-            packages: packages
+            packages: packages,
         )
     }
 
@@ -205,6 +221,10 @@ public actor ProjectStructureDetector {
     public func findLocalizationFiles(in project: ProjectStructure) async throws -> [LocalizationTarget] {
         project.targets
     }
+
+    // MARK: Private
+
+    private let fileManager: FileManager
 
     // MARK: - Project Type Detection
 
@@ -263,7 +283,7 @@ public actor ProjectStructureDetector {
         let packagesDir = url.appendingPathComponent("Packages")
         let localPackagesDir = url.appendingPathComponent("LocalPackages")
         return fileManager.fileExists(atPath: packagesDir.path) ||
-               fileManager.fileExists(atPath: localPackagesDir.path)
+            fileManager.fileExists(atPath: localPackagesDir.path)
     }
 
     private func hasPackagesDirectory(at url: URL) -> Bool {
@@ -283,7 +303,7 @@ public actor ProjectStructureDetector {
             let sourceTargets = try await findTargetsInSources(
                 at: sourcesURL,
                 parentPackage: packageName,
-                defaultLocalization: defaultLocalization
+                defaultLocalization: defaultLocalization,
             )
             targets.append(contentsOf: sourceTargets)
         }
@@ -292,7 +312,7 @@ public actor ProjectStructureDetector {
             name: packageName,
             url: url,
             isLocal: true,
-            localizationTargets: targets.map(\.name)
+            localizationTargets: targets.map(\.name),
         )
 
         return (targets, packageInfo)
@@ -301,13 +321,13 @@ public actor ProjectStructureDetector {
     private func findTargetsInSources(
         at sourcesURL: URL,
         parentPackage: String,
-        defaultLocalization: String
+        defaultLocalization: String,
     ) async throws -> [LocalizationTarget] {
         var targets: [LocalizationTarget] = []
 
         guard let sourceContents = try? fileManager.contentsOfDirectory(
             at: sourcesURL,
-            includingPropertiesForKeys: [.isDirectoryKey]
+            includingPropertiesForKeys: [.isDirectoryKey],
         ) else {
             return targets
         }
@@ -327,7 +347,7 @@ public actor ProjectStructureDetector {
                     type: .swiftPackage,
                     xcstringsURL: xcstringsURL,
                     defaultLocalization: defaultLocalization,
-                    parentPackage: parentPackage
+                    parentPackage: parentPackage,
                 )
                 targets.append(target)
             }
@@ -343,7 +363,8 @@ public actor ProjectStructureDetector {
 
         // Find the .xcodeproj
         guard let contents = try? fileManager.contentsOfDirectory(at: url, includingPropertiesForKeys: nil),
-              let projectURL = contents.first(where: { $0.pathExtension == "xcodeproj" }) else {
+              let projectURL = contents.first(where: { $0.pathExtension == "xcodeproj" })
+        else {
             return targets
         }
 
@@ -354,7 +375,7 @@ public actor ProjectStructureDetector {
             url.appendingPathComponent(projectName),
             url.appendingPathComponent("Sources"),
             url.appendingPathComponent("Source"),
-            url
+            url,
         ]
 
         for dir in possibleDirs where fileManager.fileExists(atPath: dir.path) {
@@ -367,7 +388,7 @@ public actor ProjectStructureDetector {
                     name: targetName,
                     type: targetType,
                     xcstringsURL: xcstringsURL,
-                    defaultLocalization: "en"
+                    defaultLocalization: "en",
                 )
                 targets.append(target)
             }
@@ -433,7 +454,7 @@ public actor ProjectStructureDetector {
 
             guard let contents = try? fileManager.contentsOfDirectory(
                 at: packagesURL,
-                includingPropertiesForKeys: [.isDirectoryKey]
+                includingPropertiesForKeys: [.isDirectoryKey],
             ) else { continue }
 
             for item in contents {
@@ -466,7 +487,7 @@ public actor ProjectStructureDetector {
                 name: targetName,
                 type: .unknown,
                 xcstringsURL: xcstringsURL,
-                defaultLocalization: "en"
+                defaultLocalization: "en",
             )
         }
     }
@@ -479,7 +500,7 @@ public actor ProjectStructureDetector {
         let enumerator = fileManager.enumerator(
             at: directory,
             includingPropertiesForKeys: [.isRegularFileKey],
-            options: recursive ? [] : [.skipsSubdirectoryDescendants]
+            options: recursive ? [] : [.skipsSubdirectoryDescendants],
         )
 
         while let url = enumerator?.nextObject() as? URL {
@@ -488,9 +509,9 @@ public actor ProjectStructureDetector {
             }
             // Skip hidden directories and build directories
             if url.lastPathComponent.hasPrefix(".") ||
-               url.lastPathComponent == "Build" ||
-               url.lastPathComponent == ".build" ||
-               url.lastPathComponent == "DerivedData" {
+                url.lastPathComponent == "Build" ||
+                url.lastPathComponent == ".build" ||
+                url.lastPathComponent == "DerivedData" {
                 enumerator?.skipDescendants()
             }
         }
@@ -510,10 +531,11 @@ public actor ProjectStructureDetector {
         let pattern = #"name:\s*"([^"]+)""#
         guard let regex = try? NSRegularExpression(pattern: pattern),
               let match = regex.firstMatch(
-                in: content,
-                range: NSRange(content.startIndex..., in: content)
+                  in: content,
+                  range: NSRange(content.startIndex..., in: content),
               ),
-              let nameRange = Range(match.range(at: 1), in: content) else {
+              let nameRange = Range(match.range(at: 1), in: content)
+        else {
             return nil
         }
 
@@ -530,10 +552,11 @@ public actor ProjectStructureDetector {
         let pattern = #"defaultLocalization:\s*"([^"]+)""#
         guard let regex = try? NSRegularExpression(pattern: pattern),
               let match = regex.firstMatch(
-                in: content,
-                range: NSRange(content.startIndex..., in: content)
+                  in: content,
+                  range: NSRange(content.startIndex..., in: content),
               ),
-              let langRange = Range(match.range(at: 1), in: content) else {
+              let langRange = Range(match.range(at: 1), in: content)
+        else {
             return "en"
         }
 
@@ -546,7 +569,7 @@ public actor ProjectStructureDetector {
         // Look for known target directory patterns
         for (index, component) in pathComponents.enumerated() {
             // After Sources/ or the project name directory
-            if (component == "Sources" || component == projectName),
+            if component == "Sources" || component == projectName,
                index + 1 < pathComponents.count {
                 return pathComponents[index + 1]
             }
@@ -581,10 +604,19 @@ public actor ProjectStructureDetector {
     }
 }
 
-// MARK: - Project Discovery Report
+// MARK: - ProjectDiscoveryReport
 
 /// Report from project structure detection.
 public struct ProjectDiscoveryReport: Sendable {
+    // MARK: Lifecycle
+
+    public init(structure: ProjectStructure, warnings: [String] = []) {
+        self.structure = structure
+        self.warnings = warnings
+    }
+
+    // MARK: Public
+
     /// The detected project structure.
     public let structure: ProjectStructure
 
@@ -598,10 +630,5 @@ public struct ProjectDiscoveryReport: Sendable {
         Targets: \(structure.targets.count)
         Packages: \(structure.packages.count)
         """
-    }
-
-    public init(structure: ProjectStructure, warnings: [String] = []) {
-        self.structure = structure
-        self.warnings = warnings
     }
 }

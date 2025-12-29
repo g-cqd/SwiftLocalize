@@ -3,14 +3,13 @@
 //  SwiftLocalizeCoreTests
 //
 
-import Testing
 import Foundation
 @testable import SwiftLocalizeCore
+import Testing
 
-// MARK: - IsolationVerifier Tests
+// MARK: - IsolationVerifierTests
 
 struct IsolationVerifierTests {
-
     @Test
     func verifyTranslationOnlyMode_AllowedFiles() async throws {
         let verifier = IsolationVerifier()
@@ -18,7 +17,7 @@ struct IsolationVerifierTests {
 
         let files = [
             URL(fileURLWithPath: "/path/to/en.xcstrings"),
-            URL(fileURLWithPath: "/path/to/fr.xcstrings")
+            URL(fileURLWithPath: "/path/to/fr.xcstrings"),
         ]
 
         let result = try await verifier.verify(configuration: config, mode: .translationOnly, files: files)
@@ -37,7 +36,7 @@ struct IsolationVerifierTests {
         // Non-localization files are ignored (not added to modifications list)
         let files = [
             URL(fileURLWithPath: "/path/to/Source.swift"),
-            URL(fileURLWithPath: "/path/to/en.xcstrings")
+            URL(fileURLWithPath: "/path/to/en.xcstrings"),
         ]
 
         let result = try await verifier.verify(configuration: config, mode: .translationOnly, files: files)
@@ -55,7 +54,7 @@ struct IsolationVerifierTests {
         config.context.sourceCode = SourceCodeSettings(enabled: true)
 
         let files = [
-            URL(fileURLWithPath: "/path/to/en.xcstrings")
+            URL(fileURLWithPath: "/path/to/en.xcstrings"),
         ]
 
         let result = try await verifier.verify(configuration: config, mode: .translationOnly, files: files)
@@ -71,7 +70,7 @@ struct IsolationVerifierTests {
         let files = [
             URL(fileURLWithPath: "/path/to/en.xcstrings"),
             URL(fileURLWithPath: "/path/to/fr.xcstrings"),
-            URL(fileURLWithPath: "/path/to/Localizable.strings")
+            URL(fileURLWithPath: "/path/to/Localizable.strings"),
         ]
 
         let modifications = try await verifier.listModifications(configuration: config, files: files)
@@ -91,7 +90,7 @@ struct IsolationVerifierTests {
         var config = Configuration(mode: .translationOnly)
         config.context.translationMemory = TranslationMemorySettings(
             enabled: true,
-            file: "/path/to/tm.json"
+            file: "/path/to/tm.json",
         )
 
         let files = [URL(fileURLWithPath: "/path/to/en.xcstrings")]
@@ -122,7 +121,7 @@ struct IsolationVerifierTests {
         var config = Configuration(mode: .translationOnly)
         config.context.glossary = GlossarySettings(
             enabled: true,
-            file: "/path/to/glossary.json"
+            file: "/path/to/glossary.json",
         )
 
         let reads = try await verifier.listReads(configuration: config, mode: .translationOnly)
@@ -132,10 +131,9 @@ struct IsolationVerifierTests {
     }
 }
 
-// MARK: - FileAccessAuditor Tests
+// MARK: - FileAccessAuditorTests
 
 struct FileAccessAuditorTests {
-
     @Test
     func recordRead_TracksReadOperations() async {
         let auditor = FileAccessAuditor()
@@ -170,7 +168,7 @@ struct FileAccessAuditorTests {
 
         await auditor.recordWrite(
             url: URL(fileURLWithPath: "/path/to/file.xcstrings"),
-            purpose: "Translation"
+            purpose: "Translation",
         )
 
         let violations = try await auditor.validateWrites(allowedPatterns: ["**/*.xcstrings"])
@@ -184,7 +182,7 @@ struct FileAccessAuditorTests {
 
         await auditor.recordWrite(
             url: URL(fileURLWithPath: "/path/to/file.swift"),
-            purpose: "Invalid write"
+            purpose: "Invalid write",
         )
 
         let violations = try await auditor.validateWrites(allowedPatterns: ["**/*.xcstrings"])
@@ -210,10 +208,9 @@ struct FileAccessAuditorTests {
     }
 }
 
-// MARK: - OperationMode Tests
+// MARK: - OperationModeTests
 
 struct OperationModeTests {
-
     @Test
     func translationOnlyMode_IsDefault() {
         let config = Configuration()
@@ -239,10 +236,9 @@ struct OperationModeTests {
     }
 }
 
-// MARK: - ContextDepth Tests
+// MARK: - ContextDepthTests
 
 struct ContextDepthTests {
-
     @Test
     func contextDepth_HasAllExpectedCases() {
         let cases = ContextDepth.allCases
@@ -260,10 +256,9 @@ struct ContextDepthTests {
     }
 }
 
-// MARK: - IsolationSettings Tests
+// MARK: - IsolationSettingsTests
 
 struct IsolationSettingsTests {
-
     @Test
     func defaultIsolationSettings_IsStrict() {
         let config = Configuration()

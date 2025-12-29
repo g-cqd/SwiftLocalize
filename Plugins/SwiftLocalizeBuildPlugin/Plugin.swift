@@ -6,6 +6,8 @@
 import Foundation
 import PackagePlugin
 
+// MARK: - SwiftLocalizeBuildPlugin
+
 /// Build tool plugin that validates translations during the build process.
 ///
 /// This plugin runs on every build to verify that xcstrings files are valid
@@ -49,7 +51,7 @@ struct SwiftLocalizeBuildPlugin: BuildToolPlugin {
             // Create output file path for the build system
             // We use a marker file to track validation status
             let outputPath = context.pluginWorkDirectoryURL.appending(
-                path: "\(file.url.lastPathComponent).validated"
+                path: "\(file.url.lastPathComponent).validated",
             )
 
             commands.append(.buildCommand(
@@ -57,10 +59,10 @@ struct SwiftLocalizeBuildPlugin: BuildToolPlugin {
                 executable: tool.url,
                 arguments: [
                     "validate",
-                    file.url.path
+                    file.url.path,
                 ],
                 inputFiles: [file.url],
-                outputFiles: [outputPath]
+                outputFiles: [outputPath],
             ))
         }
 
@@ -69,52 +71,52 @@ struct SwiftLocalizeBuildPlugin: BuildToolPlugin {
 }
 
 #if canImport(XcodeProjectPlugin)
-import XcodeProjectPlugin
+    import XcodeProjectPlugin
 
-extension SwiftLocalizeBuildPlugin: XcodeBuildToolPlugin {
-    func createBuildCommands(
-        context: XcodePluginContext,
-        target: XcodeTarget
-    ) throws -> [Command] {
-        // Find xcstrings files in the target's input files
-        let xcstringsFiles = target.inputFiles.filter { file in
-            file.url.pathExtension == "xcstrings"
+    extension SwiftLocalizeBuildPlugin: XcodeBuildToolPlugin {
+        func createBuildCommands(
+            context: XcodePluginContext,
+            target: XcodeTarget,
+        ) throws -> [Command] {
+            // Find xcstrings files in the target's input files
+            let xcstringsFiles = target.inputFiles.filter { file in
+                file.url.pathExtension == "xcstrings"
+            }
+
+            guard !xcstringsFiles.isEmpty else {
+                return []
+            }
+
+            // Get the swiftlocalize tool
+            let tool: PluginContext.Tool
+            do {
+                tool = try context.tool(named: "swiftlocalize")
+            } catch {
+                Diagnostics.warning("swiftlocalize tool not found, skipping translation validation")
+                return []
+            }
+
+            // Create validation commands
+            var commands: [Command] = []
+
+            for file in xcstringsFiles {
+                let outputPath = context.pluginWorkDirectoryURL.appending(
+                    path: "\(file.url.lastPathComponent).validated",
+                )
+
+                commands.append(.buildCommand(
+                    displayName: "Validate \(file.url.lastPathComponent)",
+                    executable: tool.url,
+                    arguments: [
+                        "validate",
+                        file.url.path,
+                    ],
+                    inputFiles: [file.url],
+                    outputFiles: [outputPath],
+                ))
+            }
+
+            return commands
         }
-
-        guard !xcstringsFiles.isEmpty else {
-            return []
-        }
-
-        // Get the swiftlocalize tool
-        let tool: PluginContext.Tool
-        do {
-            tool = try context.tool(named: "swiftlocalize")
-        } catch {
-            Diagnostics.warning("swiftlocalize tool not found, skipping translation validation")
-            return []
-        }
-
-        // Create validation commands
-        var commands: [Command] = []
-
-        for file in xcstringsFiles {
-            let outputPath = context.pluginWorkDirectoryURL.appending(
-                path: "\(file.url.lastPathComponent).validated"
-            )
-
-            commands.append(.buildCommand(
-                displayName: "Validate \(file.url.lastPathComponent)",
-                executable: tool.url,
-                arguments: [
-                    "validate",
-                    file.url.path
-                ],
-                inputFiles: [file.url],
-                outputFiles: [outputPath]
-            ))
-        }
-
-        return commands
     }
-}
 #endif

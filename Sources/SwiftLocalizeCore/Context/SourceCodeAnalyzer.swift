@@ -5,7 +5,7 @@
 
 import Foundation
 
-// MARK: - Source Code Analyzer
+// MARK: - SourceCodeAnalyzer
 
 /// Analyzes Swift source code to extract context about how strings are used.
 ///
@@ -24,26 +24,15 @@ import Foundation
 /// print(context.elementTypes) // [.text, .navigationTitle]
 /// ```
 public actor SourceCodeAnalyzer {
-
-    /// Patterns for detecting UI element types.
-    private let elementPatterns: [(pattern: String, type: UIElementType)]
-
-    /// Patterns for detecting SwiftUI modifiers.
-    private let modifierPatterns: [String]
-
-    /// File extensions to scan.
-    private let fileExtensions: Set<String>
-
-    /// Maximum lines of context to capture around a match.
-    private let contextLines: Int
+    // MARK: Lifecycle
 
     public init(contextLines: Int = 5) {
         self.contextLines = contextLines
-        self.fileExtensions = ["swift"]
+        fileExtensions = ["swift"]
 
         // Initialize element detection patterns
         // These use simple string matching for performance
-        self.elementPatterns = [
+        elementPatterns = [
             ("Button(", .button),
             ("Button {", .button),
             (".buttonStyle", .button),
@@ -68,7 +57,7 @@ public actor SourceCodeAnalyzer {
         ]
 
         // Modifiers that provide context
-        self.modifierPatterns = [
+        modifierPatterns = [
             ".font(",
             ".foregroundColor(",
             ".foregroundStyle(",
@@ -87,6 +76,8 @@ public actor SourceCodeAnalyzer {
         ]
     }
 
+    // MARK: Public
+
     // MARK: - Public API
 
     /// Analyze how a string key is used in the codebase.
@@ -97,7 +88,7 @@ public actor SourceCodeAnalyzer {
     /// - Returns: Context about how the string is used.
     public func analyzeUsage(
         key: String,
-        in projectPath: URL
+        in projectPath: URL,
     ) throws -> StringUsageContext {
         let occurrences = try findOccurrences(key: key, in: projectPath)
 
@@ -114,7 +105,7 @@ public actor SourceCodeAnalyzer {
         }
 
         // Extract code snippets (limit to preserve context window)
-        let codeSnippets = occurrences.prefix(3).map { $0.context }
+        let codeSnippets = occurrences.prefix(3).map(\.context)
 
         // Extract modifiers
         var modifiers: Set<String> = []
@@ -131,7 +122,7 @@ public actor SourceCodeAnalyzer {
             elementTypes: elementTypes,
             codeSnippets: codeSnippets,
             modifiers: Array(modifiers).sorted(),
-            fileLocations: fileLocations
+            fileLocations: fileLocations,
         )
     }
 
@@ -143,7 +134,7 @@ public actor SourceCodeAnalyzer {
     /// - Returns: Dictionary mapping keys to their usage context.
     public func analyzeUsage(
         keys: [String],
-        in projectPath: URL
+        in projectPath: URL,
     ) throws -> [String: StringUsageContext] {
         // Build a file cache first
         let files = try collectSwiftFiles(in: projectPath)
@@ -182,12 +173,26 @@ public actor SourceCodeAnalyzer {
                 elementTypes: elementTypes,
                 codeSnippets: codeSnippets,
                 modifiers: Array(modifiers).sorted(),
-                fileLocations: fileLocations.sorted()
+                fileLocations: fileLocations.sorted(),
             )
         }
 
         return results
     }
+
+    // MARK: Private
+
+    /// Patterns for detecting UI element types.
+    private let elementPatterns: [(pattern: String, type: UIElementType)]
+
+    /// Patterns for detecting SwiftUI modifiers.
+    private let modifierPatterns: [String]
+
+    /// File extensions to scan.
+    private let fileExtensions: Set<String>
+
+    /// Maximum lines of context to capture around a match.
+    private let contextLines: Int
 
     // MARK: - File Discovery
 
@@ -199,7 +204,7 @@ public actor SourceCodeAnalyzer {
         guard let enumerator = fm.enumerator(
             at: directory,
             includingPropertiesForKeys: [.isRegularFileKey],
-            options: [.skipsHiddenFiles, .skipsPackageDescendants]
+            options: [.skipsHiddenFiles, .skipsPackageDescendants],
         ) else {
             return []
         }
@@ -210,10 +215,10 @@ public actor SourceCodeAnalyzer {
             // Skip common non-source directories
             let path = fileURL.path
             if path.contains(".build/") ||
-               path.contains("DerivedData/") ||
-               path.contains("Pods/") ||
-               path.contains(".git/") ||
-               path.contains("Carthage/") {
+                path.contains("DerivedData/") ||
+                path.contains("Pods/") ||
+                path.contains(".git/") ||
+                path.contains("Carthage/") {
                 continue
             }
 
@@ -230,7 +235,7 @@ public actor SourceCodeAnalyzer {
     /// Find all occurrences of a key in Swift files.
     private func findOccurrences(
         key: String,
-        in projectPath: URL
+        in projectPath: URL,
     ) throws -> [CodeOccurrence] {
         let files = try collectSwiftFiles(in: projectPath)
         var occurrences: [CodeOccurrence] = []
@@ -244,7 +249,7 @@ public actor SourceCodeAnalyzer {
                 key: key,
                 in: content,
                 file: file.path,
-                basePath: projectPath.path
+                basePath: projectPath.path,
             )
             occurrences.append(contentsOf: fileOccurrences)
         }
@@ -256,7 +261,7 @@ public actor SourceCodeAnalyzer {
     private func findOccurrences(
         key: String,
         in fileContents: [URL: String],
-        basePath: URL
+        basePath: URL,
     ) -> [CodeOccurrence] {
         var occurrences: [CodeOccurrence] = []
 
@@ -265,7 +270,7 @@ public actor SourceCodeAnalyzer {
                 key: key,
                 in: content,
                 file: file.path,
-                basePath: basePath.path
+                basePath: basePath.path,
             )
             occurrences.append(contentsOf: fileOccurrences)
         }
@@ -278,14 +283,14 @@ public actor SourceCodeAnalyzer {
         key: String,
         in content: String,
         file: String,
-        basePath: String
+        basePath: String,
     ) -> [CodeOccurrence] {
         var occurrences: [CodeOccurrence] = []
         let lines = content.components(separatedBy: .newlines)
 
         // Search patterns for the key
         let searchPatterns = [
-            "\"\(key)\"",           // Direct string literal
+            "\"\(key)\"", // Direct string literal
             "LocalizedStringKey(\"\(key)\")",
             "String(localized: \"\(key)\")",
             "NSLocalizedString(\"\(key)\"",
@@ -299,7 +304,7 @@ public actor SourceCodeAnalyzer {
                     // Extract surrounding context
                     let startLine = max(0, lineIndex - contextLines)
                     let endLine = min(lines.count - 1, lineIndex + contextLines)
-                    let contextLines = lines[startLine...endLine].joined(separator: "\n")
+                    let contextLines = lines[startLine ... endLine].joined(separator: "\n")
 
                     // Calculate relative file path
                     var relativePath = file
@@ -318,7 +323,7 @@ public actor SourceCodeAnalyzer {
                         line: lineIndex + 1,
                         column: column,
                         context: contextLines,
-                        matchedPattern: pattern
+                        matchedPattern: pattern,
                     ))
                     break // Only one occurrence per line
                 }
@@ -369,7 +374,7 @@ public actor SourceCodeAnalyzer {
     }
 }
 
-// MARK: - Analyzer Errors
+// MARK: - SourceCodeAnalyzerError
 
 /// Errors that can occur during source code analysis.
 public enum SourceCodeAnalyzerError: Error, Sendable {
@@ -378,15 +383,19 @@ public enum SourceCodeAnalyzerError: Error, Sendable {
     case invalidPath(String)
 }
 
+// MARK: LocalizedError
+
 extension SourceCodeAnalyzerError: LocalizedError {
     public var errorDescription: String? {
         switch self {
-        case .directoryNotFound(let path):
-            return "Directory not found: \(path)"
-        case .fileReadError(let path, let error):
-            return "Failed to read file '\(path)': \(error.localizedDescription)"
-        case .invalidPath(let path):
-            return "Invalid path: \(path)"
+        case let .directoryNotFound(path):
+            "Directory not found: \(path)"
+
+        case let .fileReadError(path, error):
+            "Failed to read file '\(path)': \(error.localizedDescription)"
+
+        case let .invalidPath(path):
+            "Invalid path: \(path)"
         }
     }
 }

@@ -6,7 +6,7 @@
 
 import Foundation
 
-// MARK: - Key Consistency Analyzer
+// MARK: - KeyConsistencyAnalyzer
 
 /// Analyzes key consistency across multiple xcstrings catalogs.
 ///
@@ -26,8 +26,11 @@ import Foundation
 /// }
 /// ```
 public actor KeyConsistencyAnalyzer {
+    // MARK: Lifecycle
 
     public init() {}
+
+    // MARK: Public
 
     // MARK: - Analysis
 
@@ -39,14 +42,14 @@ public actor KeyConsistencyAnalyzer {
     /// - Returns: A consistency report.
     public func analyze(
         catalogs: [URL],
-        options: ConsistencyOptions = .init()
+        options: ConsistencyOptions = .init(),
     ) async throws -> ConsistencyReport {
         guard catalogs.count >= 2 else {
             return ConsistencyReport(
                 commonKeys: [],
                 missingKeys: [:],
                 conflicts: [],
-                exclusiveKeys: [:]
+                exclusiveKeys: [:],
             )
         }
 
@@ -102,7 +105,7 @@ public actor KeyConsistencyAnalyzer {
             commonKeys: commonKeys.sorted(),
             missingKeys: missingKeys,
             conflicts: conflicts,
-            exclusiveKeys: exclusiveKeys
+            exclusiveKeys: exclusiveKeys,
         )
     }
 
@@ -121,11 +124,13 @@ public actor KeyConsistencyAnalyzer {
         return allKeys
     }
 
+    // MARK: Private
+
     // MARK: - Conflict Detection
 
     private func findConflicts(
         in catalogs: [(URL, XCStrings)],
-        commonKeys: Set<String>
+        commonKeys: Set<String>,
     ) -> [KeyConflict] {
         var conflicts: [KeyConflict] = []
 
@@ -145,7 +150,7 @@ public actor KeyConsistencyAnalyzer {
                 let conflict = KeyConflict(
                     key: key,
                     sourceValues: sourceValues,
-                    recommendation: generateConflictRecommendation(key: key, values: sourceValues)
+                    recommendation: generateConflictRecommendation(key: key, values: sourceValues),
                 )
                 conflicts.append(conflict)
             }
@@ -156,7 +161,7 @@ public actor KeyConsistencyAnalyzer {
 
     private func generateConflictRecommendation(
         key: String,
-        values: [URL: String]
+        values: [URL: String],
     ) -> String {
         // Find the most common value
         var valueCounts: [String: Int] = [:]
@@ -176,10 +181,24 @@ public actor KeyConsistencyAnalyzer {
     }
 }
 
-// MARK: - Consistency Options
+// MARK: - ConsistencyOptions
 
 /// Options for consistency analysis.
 public struct ConsistencyOptions: Sendable {
+    // MARK: Lifecycle
+
+    public init(
+        checkSourceConflicts: Bool = true,
+        excludedKeys: Set<String> = [],
+        includeTestTargets: Bool = false,
+    ) {
+        self.checkSourceConflicts = checkSourceConflicts
+        self.excludedKeys = excludedKeys
+        self.includeTestTargets = includeTestTargets
+    }
+
+    // MARK: Public
+
     /// Whether to check for conflicting source values.
     public var checkSourceConflicts: Bool
 
@@ -188,22 +207,28 @@ public struct ConsistencyOptions: Sendable {
 
     /// Whether to include test targets.
     public var includeTestTargets: Bool
-
-    public init(
-        checkSourceConflicts: Bool = true,
-        excludedKeys: Set<String> = [],
-        includeTestTargets: Bool = false
-    ) {
-        self.checkSourceConflicts = checkSourceConflicts
-        self.excludedKeys = excludedKeys
-        self.includeTestTargets = includeTestTargets
-    }
 }
 
-// MARK: - Consistency Report
+// MARK: - ConsistencyReport
 
 /// Report from key consistency analysis.
 public struct ConsistencyReport: Sendable {
+    // MARK: Lifecycle
+
+    public init(
+        commonKeys: [String],
+        missingKeys: [URL: Set<String>],
+        conflicts: [KeyConflict],
+        exclusiveKeys: [URL: Set<String>],
+    ) {
+        self.commonKeys = commonKeys
+        self.missingKeys = missingKeys
+        self.conflicts = conflicts
+        self.exclusiveKeys = exclusiveKeys
+    }
+
+    // MARK: Public
+
     /// Keys present in all catalogs.
     public let commonKeys: [String]
 
@@ -249,24 +274,22 @@ public struct ConsistencyReport: Sendable {
 
         return lines.joined(separator: "\n")
     }
-
-    public init(
-        commonKeys: [String],
-        missingKeys: [URL: Set<String>],
-        conflicts: [KeyConflict],
-        exclusiveKeys: [URL: Set<String>]
-    ) {
-        self.commonKeys = commonKeys
-        self.missingKeys = missingKeys
-        self.conflicts = conflicts
-        self.exclusiveKeys = exclusiveKeys
-    }
 }
 
-// MARK: - Key Conflict
+// MARK: - KeyConflict
 
 /// A conflict where the same key has different source values.
 public struct KeyConflict: Sendable {
+    // MARK: Lifecycle
+
+    public init(key: String, sourceValues: [URL: String], recommendation: String) {
+        self.key = key
+        self.sourceValues = sourceValues
+        self.recommendation = recommendation
+    }
+
+    // MARK: Public
+
     /// The conflicting key.
     public let key: String
 
@@ -275,20 +298,17 @@ public struct KeyConflict: Sendable {
 
     /// Recommendation for resolving the conflict.
     public let recommendation: String
-
-    public init(key: String, sourceValues: [URL: String], recommendation: String) {
-        self.key = key
-        self.sourceValues = sourceValues
-        self.recommendation = recommendation
-    }
 }
 
-// MARK: - Catalog Synchronizer
+// MARK: - CatalogSynchronizer
 
 /// Synchronizes keys across multiple xcstrings catalogs.
 public actor CatalogSynchronizer {
+    // MARK: Lifecycle
 
     public init() {}
+
+    // MARK: Public
 
     // MARK: - Synchronization
 
@@ -299,7 +319,7 @@ public actor CatalogSynchronizer {
     ///   - sortMode: How to sort keys.
     public func synchronizeKeyOrder(
         catalogs: [URL],
-        sortMode: KeySortMode
+        sortMode: KeySortMode,
     ) async throws {
         for url in catalogs {
             var xcstrings = try XCStrings.parse(from: url)
@@ -324,7 +344,7 @@ public actor CatalogSynchronizer {
     /// - Returns: A synchronization report.
     public func synchronize(
         catalogs: [URL],
-        options: SyncOptions
+        options: SyncOptions,
     ) async throws -> SyncReport {
         let analyzer = KeyConsistencyAnalyzer()
         _ = try await analyzer.analyze(catalogs: catalogs)
@@ -354,7 +374,7 @@ public actor CatalogSynchronizer {
                     xcstrings.strings[key] = StringEntry(
                         extractionState: "manual",
                         shouldTranslate: true,
-                        localizations: nil
+                        localizations: nil,
                     )
                     added.append(key)
                 }
@@ -368,7 +388,7 @@ public actor CatalogSynchronizer {
                     try xcstrings.write(
                         to: url,
                         prettyPrint: true,
-                        sortKeys: options.sortAfterSync
+                        sortKeys: options.sortAfterSync,
                     )
                 }
             }
@@ -378,23 +398,27 @@ public actor CatalogSynchronizer {
             addedKeys: addedKeys,
             skippedKeys: skippedKeys,
             totalKeysProcessed: unifiedKeys.count,
-            dryRun: options.dryRun
+            dryRun: options.dryRun,
         )
     }
+
+    // MARK: Private
 
     // MARK: - Sorting
 
     private func sortEntries(
         _ entries: [String: StringEntry],
-        mode: KeySortMode
+        mode: KeySortMode,
     ) -> [String: StringEntry] {
         let sortedKeys: [String]
 
         switch mode {
         case .alphabetical:
             sortedKeys = entries.keys.sorted()
+
         case .alphabeticalDescending:
             sortedKeys = entries.keys.sorted(by: >)
+
         case .byExtractionState:
             sortedKeys = entries.keys.sorted { k1, k2 in
                 let state1 = entries[k1]?.extractionState ?? ""
@@ -407,6 +431,7 @@ public actor CatalogSynchronizer {
                 if state2 == "manual" { return false }
                 return state1 < state2
             }
+
         case .preserve:
             return entries
         }
@@ -419,7 +444,7 @@ public actor CatalogSynchronizer {
     }
 }
 
-// MARK: - Key Sort Mode
+// MARK: - KeySortMode
 
 /// Mode for sorting keys in catalogs.
 public enum KeySortMode: String, Sendable, Codable, CaseIterable {
@@ -433,10 +458,26 @@ public enum KeySortMode: String, Sendable, Codable, CaseIterable {
     case preserve
 }
 
-// MARK: - Sync Options
+// MARK: - SyncOptions
 
 /// Options for key synchronization.
 public struct SyncOptions: Sendable {
+    // MARK: Lifecycle
+
+    public init(
+        excludedKeys: Set<String> = [],
+        sortAfterSync: Bool = true,
+        dryRun: Bool = false,
+        conflictResolution: ConflictResolution = .keepFirst,
+    ) {
+        self.excludedKeys = excludedKeys
+        self.sortAfterSync = sortAfterSync
+        self.dryRun = dryRun
+        self.conflictResolution = conflictResolution
+    }
+
+    // MARK: Public
+
     /// Keys to exclude from synchronization.
     public var excludedKeys: Set<String>
 
@@ -448,21 +489,9 @@ public struct SyncOptions: Sendable {
 
     /// How to handle conflicts.
     public var conflictResolution: ConflictResolution
-
-    public init(
-        excludedKeys: Set<String> = [],
-        sortAfterSync: Bool = true,
-        dryRun: Bool = false,
-        conflictResolution: ConflictResolution = .keepFirst
-    ) {
-        self.excludedKeys = excludedKeys
-        self.sortAfterSync = sortAfterSync
-        self.dryRun = dryRun
-        self.conflictResolution = conflictResolution
-    }
 }
 
-// MARK: - Conflict Resolution
+// MARK: - ConflictResolution
 
 /// How to handle key conflicts during synchronization.
 public enum ConflictResolution: String, Sendable, Codable {
@@ -476,10 +505,26 @@ public enum ConflictResolution: String, Sendable, Codable {
     case error
 }
 
-// MARK: - Sync Report
+// MARK: - SyncReport
 
 /// Report from key synchronization.
 public struct SyncReport: Sendable {
+    // MARK: Lifecycle
+
+    public init(
+        addedKeys: [URL: [String]],
+        skippedKeys: [String],
+        totalKeysProcessed: Int,
+        dryRun: Bool,
+    ) {
+        self.addedKeys = addedKeys
+        self.skippedKeys = skippedKeys
+        self.totalKeysProcessed = totalKeysProcessed
+        self.dryRun = dryRun
+    }
+
+    // MARK: Public
+
     /// Keys added to each catalog.
     public let addedKeys: [URL: [String]]
 
@@ -494,7 +539,7 @@ public struct SyncReport: Sendable {
 
     /// Number of catalogs modified.
     public var catalogsModified: Int {
-        addedKeys.filter { !$0.value.isEmpty }.count
+        addedKeys.count { !$0.value.isEmpty }
     }
 
     /// Total keys added across all catalogs.
@@ -519,17 +564,5 @@ public struct SyncReport: Sendable {
         }
 
         return lines.joined(separator: "\n")
-    }
-
-    public init(
-        addedKeys: [URL: [String]],
-        skippedKeys: [String],
-        totalKeysProcessed: Int,
-        dryRun: Bool
-    ) {
-        self.addedKeys = addedKeys
-        self.skippedKeys = skippedKeys
-        self.totalKeysProcessed = totalKeysProcessed
-        self.dryRun = dryRun
     }
 }

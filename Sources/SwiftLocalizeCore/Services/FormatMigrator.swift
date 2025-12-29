@@ -5,7 +5,7 @@
 
 import Foundation
 
-// MARK: - Format Migrator
+// MARK: - FormatMigrator
 
 /// Migrates localization files between formats.
 ///
@@ -31,8 +31,11 @@ import Foundation
 /// )
 /// ```
 public actor FormatMigrator {
+    // MARK: Lifecycle
 
     public init() {}
+
+    // MARK: Public
 
     // MARK: - Legacy to XCStrings
 
@@ -46,16 +49,16 @@ public actor FormatMigrator {
     public func migrateToXCStrings(
         stringsFiles: [StringsFile],
         stringsdictFiles: [StringsdictFile] = [],
-        sourceLanguage: String
+        sourceLanguage: String,
     ) -> XCStrings {
         var xcstrings = XCStrings(sourceLanguage: sourceLanguage)
 
         // Index files by language
         let stringsByLang = Dictionary(
-            uniqueKeysWithValues: stringsFiles.map { ($0.language, $0) }
+            uniqueKeysWithValues: stringsFiles.map { ($0.language, $0) },
         )
         let stringsdictByLang = Dictionary(
-            uniqueKeysWithValues: stringsdictFiles.map { ($0.language, $0) }
+            uniqueKeysWithValues: stringsdictFiles.map { ($0.language, $0) },
         )
 
         // Collect all unique keys
@@ -88,7 +91,7 @@ public actor FormatMigrator {
                     if let entry = file.entries[key] {
                         localizations[language] = Localization(
                             value: entry.value,
-                            state: .translated
+                            state: .translated,
                         )
                         // Capture comment from source language
                         if language == sourceLanguage, comment == nil {
@@ -102,41 +105,11 @@ public actor FormatMigrator {
                 comment: comment,
                 extractionState: "manual",
                 shouldTranslate: true,
-                localizations: localizations.isEmpty ? nil : localizations
+                localizations: localizations.isEmpty ? nil : localizations,
             )
         }
 
         return xcstrings
-    }
-
-    /// Convert a stringsdict entry to an XCStrings localization.
-    private func convertStringsdictEntry(_ entry: StringsdictEntry) -> Localization {
-        // For single-variable plurals, convert to variations
-        if entry.variables.count == 1,
-           let (_, variable) = entry.variables.first {
-            var pluralVariations: [String: Localization] = [:]
-
-            for (category, form) in variable.pluralForms {
-                pluralVariations[category.rawValue] = Localization(
-                    value: form,
-                    state: .translated
-                )
-            }
-
-            return Localization(
-                stringUnit: nil,
-                variations: Variations(plural: pluralVariations),
-                substitutions: nil
-            )
-        }
-
-        // For complex entries with multiple variables, store the format key
-        // The full stringsdict structure would need substitutions
-        return Localization(
-            stringUnit: StringUnit(state: .translated, value: entry.formatKey),
-            variations: nil,
-            substitutions: nil
-        )
     }
 
     // MARK: - XCStrings to Legacy
@@ -149,7 +122,7 @@ public actor FormatMigrator {
     /// - Returns: Tuple of (StringsFile, StringsdictFile?) for the language.
     public func migrateToLegacy(
         xcstrings: XCStrings,
-        language: String
+        language: String,
     ) -> (strings: StringsFile, stringsdict: StringsdictFile?) {
         var stringsEntries: [String: StringsEntry] = [:]
         var stringsdictEntries: [String: StringsdictEntry] = [:]
@@ -161,74 +134,32 @@ public actor FormatMigrator {
                 // This is a plural entry → goes to stringsdict
                 stringsdictEntries[key] = convertToStringsdictEntry(
                     key: key,
-                    pluralVariations: variations
+                    pluralVariations: variations,
                 )
             } else if let stringUnit = localization.stringUnit {
                 // Simple string → goes to .strings
                 stringsEntries[key] = StringsEntry(
                     value: stringUnit.value,
-                    comment: entry.comment
+                    comment: entry.comment,
                 )
             }
         }
 
         let stringsFile = StringsFile(
             language: language,
-            entries: stringsEntries
+            entries: stringsEntries,
         )
 
-        let stringsdictFile: StringsdictFile?
-        if stringsdictEntries.isEmpty {
-            stringsdictFile = nil
+        let stringsdictFile: StringsdictFile? = if stringsdictEntries.isEmpty {
+            nil
         } else {
-            stringsdictFile = StringsdictFile(
+            StringsdictFile(
                 language: language,
-                entries: stringsdictEntries
+                entries: stringsdictEntries,
             )
         }
 
         return (stringsFile, stringsdictFile)
-    }
-
-    /// Convert plural variations back to a stringsdict entry.
-    private func convertToStringsdictEntry(
-        key: String,
-        pluralVariations: [String: Localization]
-    ) -> StringsdictEntry {
-        var pluralForms: [PluralCategory: String] = [:]
-
-        for (categoryString, localization) in pluralVariations {
-            guard let category = PluralCategory(rawValue: categoryString),
-                  let value = localization.stringUnit?.value else { continue }
-            pluralForms[category] = value
-        }
-
-        // Detect format specifier from the value
-        let formatSpecifier = detectFormatSpecifier(in: pluralForms.values.first ?? "")
-
-        let variable = PluralVariable(
-            formatSpecifier: formatSpecifier,
-            ruleType: "NSStringPluralRuleType",
-            pluralForms: pluralForms
-        )
-
-        return StringsdictEntry(
-            formatKey: "%#@count@",
-            variables: ["count": variable]
-        )
-    }
-
-    /// Detect the format specifier from a string.
-    private func detectFormatSpecifier(in string: String) -> String {
-        // Look for common format specifiers
-        if string.contains("%lld") { return "lld" }
-        if string.contains("%ld") { return "ld" }
-        if string.contains("%d") { return "d" }
-        if string.contains("%lu") { return "lu" }
-        if string.contains("%u") { return "u" }
-        if string.contains("%@") { return "@" }
-        if string.contains("%.") { return "f" }
-        return "d"
     }
 
     // MARK: - Batch Migration
@@ -247,7 +178,7 @@ public actor FormatMigrator {
         directory: URL,
         stringsFileName: String = "Localizable.strings",
         stringsdictFileName: String = "Localizable.stringsdict",
-        sourceLanguage: String = "en"
+        sourceLanguage: String = "en",
     ) async throws -> XCStrings {
         let fm = FileManager.default
         let stringsParser = StringsFileParser()
@@ -279,7 +210,7 @@ public actor FormatMigrator {
         return migrateToXCStrings(
             stringsFiles: stringsFiles,
             stringsdictFiles: stringsdictFiles,
-            sourceLanguage: sourceLanguage
+            sourceLanguage: sourceLanguage,
         )
     }
 
@@ -296,7 +227,7 @@ public actor FormatMigrator {
         xcstrings: XCStrings,
         directory: URL,
         stringsFileName: String = "Localizable.strings",
-        stringsdictFileName: String = "Localizable.stringsdict"
+        stringsdictFileName: String = "Localizable.stringsdict",
     ) async throws {
         let fm = FileManager.default
         let stringsParser = StringsFileParser()
@@ -315,7 +246,7 @@ public actor FormatMigrator {
 
             let (stringsFile, stringsdictFile) = migrateToLegacy(
                 xcstrings: xcstrings,
-                language: language
+                language: language,
             )
 
             // Write .strings file
@@ -331,12 +262,101 @@ public actor FormatMigrator {
             }
         }
     }
+
+    // MARK: Private
+
+    /// Convert a stringsdict entry to an XCStrings localization.
+    private func convertStringsdictEntry(_ entry: StringsdictEntry) -> Localization {
+        // For single-variable plurals, convert to variations
+        if entry.variables.count == 1,
+           let (_, variable) = entry.variables.first {
+            var pluralVariations: [String: Localization] = [:]
+
+            for (category, form) in variable.pluralForms {
+                pluralVariations[category.rawValue] = Localization(
+                    value: form,
+                    state: .translated,
+                )
+            }
+
+            return Localization(
+                stringUnit: nil,
+                variations: Variations(plural: pluralVariations),
+                substitutions: nil,
+            )
+        }
+
+        // For complex entries with multiple variables, store the format key
+        // The full stringsdict structure would need substitutions
+        return Localization(
+            stringUnit: StringUnit(state: .translated, value: entry.formatKey),
+            variations: nil,
+            substitutions: nil,
+        )
+    }
+
+    /// Convert plural variations back to a stringsdict entry.
+    private func convertToStringsdictEntry(
+        key: String,
+        pluralVariations: [String: Localization],
+    ) -> StringsdictEntry {
+        var pluralForms: [PluralCategory: String] = [:]
+
+        for (categoryString, localization) in pluralVariations {
+            guard let category = PluralCategory(rawValue: categoryString),
+                  let value = localization.stringUnit?.value else { continue }
+            pluralForms[category] = value
+        }
+
+        // Detect format specifier from the value
+        let formatSpecifier = detectFormatSpecifier(in: pluralForms.values.first ?? "")
+
+        let variable = PluralVariable(
+            formatSpecifier: formatSpecifier,
+            ruleType: "NSStringPluralRuleType",
+            pluralForms: pluralForms,
+        )
+
+        return StringsdictEntry(
+            formatKey: "%#@count@",
+            variables: ["count": variable],
+        )
+    }
+
+    /// Detect the format specifier from a string.
+    private func detectFormatSpecifier(in string: String) -> String {
+        // Look for common format specifiers
+        if string.contains("%lld") { return "lld" }
+        if string.contains("%ld") { return "ld" }
+        if string.contains("%d") { return "d" }
+        if string.contains("%lu") { return "lu" }
+        if string.contains("%u") { return "u" }
+        if string.contains("%@") { return "@" }
+        if string.contains("%.") { return "f" }
+        return "d"
+    }
 }
 
-// MARK: - Migration Report
+// MARK: - MigrationReport
 
 /// Report from a migration operation.
 public struct MigrationReport: Sendable {
+    // MARK: Lifecycle
+
+    public init(
+        simpleStrings: Int,
+        pluralEntries: Int,
+        languages: [String],
+        warnings: [String] = [],
+    ) {
+        self.simpleStrings = simpleStrings
+        self.pluralEntries = pluralEntries
+        self.languages = languages
+        self.warnings = warnings
+    }
+
+    // MARK: Public
+
     /// Number of simple string entries migrated.
     public let simpleStrings: Int
 
@@ -351,16 +371,4 @@ public struct MigrationReport: Sendable {
 
     /// Whether the migration was successful.
     public var isSuccessful: Bool { warnings.isEmpty }
-
-    public init(
-        simpleStrings: Int,
-        pluralEntries: Int,
-        languages: [String],
-        warnings: [String] = []
-    ) {
-        self.simpleStrings = simpleStrings
-        self.pluralEntries = pluralEntries
-        self.languages = languages
-        self.warnings = warnings
-    }
 }

@@ -7,8 +7,15 @@ import ArgumentParser
 import Foundation
 import SwiftLocalizeCore
 
+// MARK: - OperationMode + ExpressibleByArgument
+
 extension OperationMode: ExpressibleByArgument {}
+
+// MARK: - ContextDepth + ExpressibleByArgument
+
 extension ContextDepth: ExpressibleByArgument {}
+
+// MARK: - SwiftLocalize
 
 @main
 struct SwiftLocalize: AsyncParsableCommand {
@@ -28,16 +35,18 @@ struct SwiftLocalize: AsyncParsableCommand {
             TargetsCommand.self,
             SyncKeysCommand.self,
         ],
-        defaultSubcommand: TranslateCommand.self
+        defaultSubcommand: TranslateCommand.self,
     )
 }
 
-// MARK: - Translate Command
+// MARK: - TranslateCommand
 
 struct TranslateCommand: AsyncParsableCommand {
+    // MARK: Internal
+
     static let configuration = CommandConfiguration(
         commandName: "translate",
-        abstract: "Translate xcstrings files."
+        abstract: "Translate xcstrings files.",
     )
 
     @Option(name: [.short, .customLong("config")], help: "Configuration file path.")
@@ -70,7 +79,11 @@ struct TranslateCommand: AsyncParsableCommand {
     @Flag(name: .customLong("ci"), help: "CI/CD mode with strict exit codes and minimal output.")
     var ciMode = false
 
-    @Flag(name: .customLong("incremental"), inversion: .prefixedNo, help: "Use incremental translation (skip unchanged strings).")
+    @Flag(
+        name: .customLong("incremental"),
+        inversion: .prefixedNo,
+        help: "Use incremental translation (skip unchanged strings).",
+    )
     var incremental = true
 
     @Flag(name: .customLong("preview"), help: "Show proposed translations without applying them.")
@@ -151,10 +164,10 @@ struct TranslateCommand: AsyncParsableCommand {
                 config.context.sourceCode?.enabled = true
             }
         } else {
-             // Respect flag if set explicitly, otherwise keep config
-             if contextDepth != .standard {
-                 config.context.depth = contextDepth
-             }
+            // Respect flag if set explicitly, otherwise keep config
+            if contextDepth != .standard {
+                config.context.depth = contextDepth
+            }
         }
 
         // Isolation overrides
@@ -163,7 +176,8 @@ struct TranslateCommand: AsyncParsableCommand {
         }
 
         if let languagesArg = languages {
-            let langs = languagesArg.split(separator: ",").map { LanguageCode(String($0).trimmingCharacters(in: .whitespaces)) }
+            let langs = languagesArg.split(separator: ",")
+                .map { LanguageCode(String($0).trimmingCharacters(in: .whitespaces)) }
             config.targetLanguages = langs
         }
 
@@ -202,13 +216,13 @@ struct TranslateCommand: AsyncParsableCommand {
                     throw ExitCode.failure
                 }
                 xcstringsURLs = [locTarget.xcstringsURL]
-                if verbose && !effectiveQuiet {
+                if verbose, !effectiveQuiet {
                     print("Translating target: \(targetName)")
                 }
             } else {
                 // All targets
                 xcstringsURLs = structure.targets.map(\.xcstringsURL)
-                if verbose && !effectiveQuiet {
+                if verbose, !effectiveQuiet {
                     print("Discovered \(structure.targets.count) target(s)")
                     for t in structure.targets {
                         print("  - \(t.name): \(t.xcstringsURL.lastPathComponent)")
@@ -228,7 +242,7 @@ struct TranslateCommand: AsyncParsableCommand {
             return
         }
 
-        if verbose && !effectiveQuiet {
+        if verbose, !effectiveQuiet {
             print("Found \(xcstringsURLs.count) xcstrings file(s)")
             for url in xcstringsURLs {
                 print("  - \(url.lastPathComponent)")
@@ -237,7 +251,7 @@ struct TranslateCommand: AsyncParsableCommand {
 
         // Isolation Verification
         if config.isolation.verifyBeforeRun {
-            if verbose && !effectiveQuiet {
+            if verbose, !effectiveQuiet {
                 print("Verifying file isolation...")
             }
             let verifier = IsolationVerifier()
@@ -251,7 +265,7 @@ struct TranslateCommand: AsyncParsableCommand {
                 if config.isolation.strict {
                     throw ExitCode.failure
                 }
-            } else if verbose && !effectiveQuiet {
+            } else if verbose, !effectiveQuiet {
                 print("Isolation verification passed.")
             }
         }
@@ -274,7 +288,7 @@ struct TranslateCommand: AsyncParsableCommand {
                 let backupURL = url.appendingPathExtension("bak")
                 try? FileManager.default.removeItem(at: backupURL)
                 try FileManager.default.copyItem(at: url, to: backupURL)
-                if verbose && !effectiveQuiet {
+                if verbose, !effectiveQuiet {
                     print("Backup created: \(backupURL.lastPathComponent)")
                 }
             }
@@ -290,7 +304,7 @@ struct TranslateCommand: AsyncParsableCommand {
         }
 
         let report = try await service.translateFiles(at: xcstringsURLs) { progress in
-            if !effectiveQuiet && !effectiveJson {
+            if !effectiveQuiet, !effectiveJson {
                 let percentage = Int(progress.percentage * 100)
                 let langInfo = progress.currentLanguage.map { " [\($0.code)]" } ?? ""
                 print("\rProgress: \(percentage)%\(langInfo) (\(progress.completed)/\(progress.total))", terminator: "")
@@ -298,7 +312,7 @@ struct TranslateCommand: AsyncParsableCommand {
             }
         }
 
-        if !effectiveQuiet && !effectiveJson {
+        if !effectiveQuiet, !effectiveJson {
             print() // New line after progress
         }
 
@@ -313,11 +327,13 @@ struct TranslateCommand: AsyncParsableCommand {
         if report.failedCount > 0 {
             throw ExitCode(1) // Translation errors
         }
-        if ciMode && report.translatedCount == 0 && report.totalStrings > 0 {
+        if ciMode, report.translatedCount == 0, report.totalStrings > 0 {
             // In CI mode, if nothing was translated but there were strings, it's informational
             // This is not an error - could mean all strings were already translated
         }
     }
+
+    // MARK: Private
 
     private func findXCStringsFiles(patterns: [String]) throws -> [URL] {
         let fm = FileManager.default
@@ -349,7 +365,7 @@ struct TranslateCommand: AsyncParsableCommand {
         let enumerator = fm.enumerator(
             at: baseURL,
             includingPropertiesForKeys: [.isRegularFileKey],
-            options: [.skipsHiddenFiles]
+            options: [.skipsHiddenFiles],
         )
 
         while let url = enumerator?.nextObject() as? URL {
@@ -427,7 +443,7 @@ struct TranslateCommand: AsyncParsableCommand {
                     let results = try await service.translateBatch(
                         stringsToPreview,
                         from: LanguageCode(xcstrings.sourceLanguage),
-                        to: targetLanguage
+                        to: targetLanguage,
                     )
 
                     for (index, result) in results.enumerated() {
@@ -466,11 +482,13 @@ struct TranslateCommand: AsyncParsableCommand {
         if !report.byLanguage.isEmpty {
             print("\nBy Language:")
             for (lang, langReport) in report.byLanguage.sorted(by: { $0.key.code < $1.key.code }) {
-                print("  \(lang.code): \(langReport.translatedCount) translated, \(langReport.failedCount) failed [\(langReport.provider)]")
+                print(
+                    "  \(lang.code): \(langReport.translatedCount) translated, \(langReport.failedCount) failed [\(langReport.provider)]",
+                )
             }
         }
 
-        if !report.errors.isEmpty && verbose {
+        if !report.errors.isEmpty, verbose {
             print("\nErrors:")
             for error in report.errors.prefix(10) {
                 print("  [\(error.language.code)] \(error.key): \(error.message)")
@@ -513,20 +531,20 @@ struct TranslateCommand: AsyncParsableCommand {
             failedCount: report.failedCount,
             skippedCount: report.skippedCount,
             durationSeconds: seconds,
-            byLanguage: Dictionary(uniqueKeysWithValues: report.byLanguage.map { (lang, info) in
+            byLanguage: Dictionary(uniqueKeysWithValues: report.byLanguage.map { lang, info in
                 (lang.code, JSONReport.LanguageInfo(
                     translatedCount: info.translatedCount,
                     failedCount: info.failedCount,
-                    provider: info.provider
+                    provider: info.provider,
                 ))
             }),
             errors: report.errors.map { error in
                 JSONReport.ErrorInfo(
                     key: error.key,
                     language: error.language.code,
-                    message: error.message
+                    message: error.message,
                 )
-            }
+            },
         )
 
         let encoder = JSONEncoder()
@@ -536,12 +554,14 @@ struct TranslateCommand: AsyncParsableCommand {
     }
 }
 
-// MARK: - Validate Command
+// MARK: - ValidateCommand
 
 struct ValidateCommand: AsyncParsableCommand {
+    // MARK: Internal
+
     static let configuration = CommandConfiguration(
         commandName: "validate",
-        abstract: "Validate translations in xcstrings files."
+        abstract: "Validate translations in xcstrings files.",
     )
 
     @Option(name: [.short, .customLong("config")], help: "Configuration file path.")
@@ -567,21 +587,20 @@ struct ValidateCommand: AsyncParsableCommand {
         let cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
 
         // Load configuration
-        let config: Configuration
-        if let configPath = configPath {
-            config = try loader.load(from: URL(fileURLWithPath: configPath))
+        let config: Configuration = if let configPath = configPath {
+            try loader.load(from: URL(fileURLWithPath: configPath))
         } else {
-            config = (try? loader.load(searchingIn: cwd)) ?? loader.defaultConfiguration()
+            (try? loader.load(searchingIn: cwd)) ?? loader.defaultConfiguration()
         }
 
         // Find files
-        let _ = files.isEmpty ? config.files.include : files
+        _ = files.isEmpty ? config.files.include : files
         var xcstringsURLs: [URL] = []
 
         let enumerator = FileManager.default.enumerator(
             at: cwd,
             includingPropertiesForKeys: nil,
-            options: [.skipsHiddenFiles]
+            options: [.skipsHiddenFiles],
         )
         while let url = enumerator?.nextObject() as? URL {
             if url.pathExtension == "xcstrings" {
@@ -627,7 +646,8 @@ struct ValidateCommand: AsyncParsableCommand {
             if config.validation.validateFormatters {
                 for (key, entry) in xcstrings.strings {
                     guard let sourceLocalization = entry.localizations?[xcstrings.sourceLanguage],
-                          let sourceValue = sourceLocalization.stringUnit?.value else {
+                          let sourceValue = sourceLocalization.stringUnit?.value
+                    else {
                         continue
                     }
 
@@ -635,7 +655,8 @@ struct ValidateCommand: AsyncParsableCommand {
 
                     for (langCode, localization) in entry.localizations ?? [:] {
                         guard langCode != xcstrings.sourceLanguage,
-                              let targetValue = localization.stringUnit?.value else {
+                              let targetValue = localization.stringUnit?.value
+                        else {
                             continue
                         }
 
@@ -664,10 +685,12 @@ struct ValidateCommand: AsyncParsableCommand {
             throw ExitCode.failure
         }
 
-        if !hasErrors && !hasWarnings && !effectiveJson {
+        if !hasErrors, !hasWarnings, !effectiveJson {
             print("\nValidation passed!")
         }
     }
+
+    // MARK: Private
 
     private func extractFormatSpecifiers(from string: String) -> [String] {
         let pattern = #"%[@dDuUxXoOfeEgGcCsSpaAFn]|%[0-9]*\.?[0-9]*[dDuUxXoOfeEgGcCsSpaAFnlh@]+"#
@@ -680,12 +703,14 @@ struct ValidateCommand: AsyncParsableCommand {
     }
 }
 
-// MARK: - Status Command
+// MARK: - StatusCommand
 
 struct StatusCommand: AsyncParsableCommand {
+    // MARK: Internal
+
     static let configuration = CommandConfiguration(
         commandName: "status",
-        abstract: "Show translation status."
+        abstract: "Show translation status.",
     )
 
     @Option(name: [.short, .customLong("config")], help: "Configuration file path.")
@@ -702,11 +727,10 @@ struct StatusCommand: AsyncParsableCommand {
         let cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
 
         // Load configuration
-        let config: Configuration
-        if let configPath = configPath {
-            config = try loader.load(from: URL(fileURLWithPath: configPath))
+        let config: Configuration = if let configPath = configPath {
+            try loader.load(from: URL(fileURLWithPath: configPath))
         } else {
-            config = (try? loader.load(searchingIn: cwd)) ?? loader.defaultConfiguration()
+            (try? loader.load(searchingIn: cwd)) ?? loader.defaultConfiguration()
         }
 
         // Find files
@@ -714,7 +738,7 @@ struct StatusCommand: AsyncParsableCommand {
         let enumerator = FileManager.default.enumerator(
             at: cwd,
             includingPropertiesForKeys: nil,
-            options: [.skipsHiddenFiles]
+            options: [.skipsHiddenFiles],
         )
         while let url = enumerator?.nextObject() as? URL {
             if url.pathExtension == "xcstrings" {
@@ -761,14 +785,14 @@ struct StatusCommand: AsyncParsableCommand {
                 languageStatus[targetLang.code] = LanguageStatus(
                     translated: translated,
                     missing: missing.count,
-                    percentage: percentage
+                    percentage: percentage,
                 )
             }
 
             allStatus.append(FileStatus(
                 file: url.lastPathComponent,
                 totalStrings: totalStrings,
-                languages: languageStatus
+                languages: languageStatus,
             ))
         }
 
@@ -798,11 +822,11 @@ struct StatusCommand: AsyncParsableCommand {
                             JSONLangStatus(
                                 translated: lang.translated,
                                 missing: lang.missing,
-                                percentage: lang.percentage
+                                percentage: lang.percentage,
                             )
-                        }
+                        },
                     )
-                }
+                },
             )
 
             let encoder = JSONEncoder()
@@ -826,6 +850,8 @@ struct StatusCommand: AsyncParsableCommand {
         }
     }
 
+    // MARK: Private
+
     private func makeProgressBar(percentage: Double, width: Int) -> String {
         let filled = Int(Double(width) * percentage / 100)
         let empty = width - filled
@@ -833,12 +859,12 @@ struct StatusCommand: AsyncParsableCommand {
     }
 }
 
-// MARK: - Init Command
+// MARK: - InitCommand
 
 struct InitCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "init",
-        abstract: "Create a configuration file."
+        abstract: "Create a configuration file.",
     )
 
     @Option(name: [.short, .customLong("output")], help: "Output file path.")
@@ -850,7 +876,7 @@ struct InitCommand: AsyncParsableCommand {
     func run() async throws {
         let outputURL = URL(fileURLWithPath: outputPath)
 
-        if FileManager.default.fileExists(atPath: outputURL.path) && !force {
+        if FileManager.default.fileExists(atPath: outputURL.path), !force {
             printError("Configuration file already exists: \(outputPath)")
             printError("Use --force to overwrite.")
             throw ExitCode.failure
@@ -870,12 +896,12 @@ struct InitCommand: AsyncParsableCommand {
     }
 }
 
-// MARK: - Providers Command
+// MARK: - ProvidersCommand
 
 struct ProvidersCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "providers",
-        abstract: "List available translation providers."
+        abstract: "List available translation providers.",
     )
 
     @Flag(name: .customLong("json"), help: "Output as JSON.")
@@ -897,7 +923,7 @@ struct ProvidersCommand: AsyncParsableCommand {
             name: "openai",
             displayName: "OpenAI GPT",
             available: openaiAvailable,
-            reason: openaiAvailable ? nil : "OPENAI_API_KEY not set"
+            reason: openaiAvailable ? nil : "OPENAI_API_KEY not set",
         ))
 
         // Check Anthropic
@@ -906,7 +932,7 @@ struct ProvidersCommand: AsyncParsableCommand {
             name: "anthropic",
             displayName: "Anthropic Claude",
             available: anthropicAvailable,
-            reason: anthropicAvailable ? nil : "ANTHROPIC_API_KEY not set"
+            reason: anthropicAvailable ? nil : "ANTHROPIC_API_KEY not set",
         ))
 
         // Check Gemini
@@ -915,7 +941,7 @@ struct ProvidersCommand: AsyncParsableCommand {
             name: "gemini",
             displayName: "Google Gemini",
             available: geminiAvailable,
-            reason: geminiAvailable ? nil : "GEMINI_API_KEY not set"
+            reason: geminiAvailable ? nil : "GEMINI_API_KEY not set",
         ))
 
         // Check DeepL
@@ -924,7 +950,7 @@ struct ProvidersCommand: AsyncParsableCommand {
             name: "deepl",
             displayName: "DeepL",
             available: deeplAvailable,
-            reason: deeplAvailable ? nil : "DEEPL_API_KEY not set"
+            reason: deeplAvailable ? nil : "DEEPL_API_KEY not set",
         ))
 
         // Check Ollama
@@ -934,41 +960,41 @@ struct ProvidersCommand: AsyncParsableCommand {
             name: "ollama",
             displayName: "Ollama (Local)",
             available: ollamaAvailable,
-            reason: ollamaAvailable ? nil : "Ollama server not running"
+            reason: ollamaAvailable ? nil : "Ollama server not running",
         ))
 
         // Apple Translation
         #if canImport(Translation)
-        providers.append(ProviderInfo(
-            name: "apple-translation",
-            displayName: "Apple Translation",
-            available: true,
-            reason: nil
-        ))
+            providers.append(ProviderInfo(
+                name: "apple-translation",
+                displayName: "Apple Translation",
+                available: true,
+                reason: nil,
+            ))
         #else
-        providers.append(ProviderInfo(
-            name: "apple-translation",
-            displayName: "Apple Translation",
-            available: false,
-            reason: "Requires macOS 14.4+ with Translation framework"
-        ))
+            providers.append(ProviderInfo(
+                name: "apple-translation",
+                displayName: "Apple Translation",
+                available: false,
+                reason: "Requires macOS 14.4+ with Translation framework",
+            ))
         #endif
 
         // Foundation Models
         #if canImport(FoundationModels)
-        providers.append(ProviderInfo(
-            name: "foundation-models",
-            displayName: "Apple Intelligence",
-            available: true,
-            reason: nil
-        ))
+            providers.append(ProviderInfo(
+                name: "foundation-models",
+                displayName: "Apple Intelligence",
+                available: true,
+                reason: nil,
+            ))
         #else
-        providers.append(ProviderInfo(
-            name: "foundation-models",
-            displayName: "Apple Intelligence",
-            available: false,
-            reason: "Requires macOS 26+ with Apple Intelligence enabled"
-        ))
+            providers.append(ProviderInfo(
+                name: "foundation-models",
+                displayName: "Apple Intelligence",
+                available: false,
+                reason: "Requires macOS 26+ with Apple Intelligence enabled",
+            ))
         #endif
 
         if jsonOutput {
@@ -1005,7 +1031,7 @@ struct ProvidersCommand: AsyncParsableCommand {
     }
 }
 
-// MARK: - Migrate Command
+// MARK: - MigrateCommand
 
 struct MigrateCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
@@ -1015,14 +1041,16 @@ struct MigrateCommand: AsyncParsableCommand {
             MigrateToXCStrings.self,
             MigrateToLegacy.self,
         ],
-        defaultSubcommand: MigrateToXCStrings.self
+        defaultSubcommand: MigrateToXCStrings.self,
     )
 }
+
+// MARK: - MigrateToXCStrings
 
 struct MigrateToXCStrings: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "to-xcstrings",
-        abstract: "Migrate .strings/.stringsdict files to .xcstrings format."
+        abstract: "Migrate .strings/.stringsdict files to .xcstrings format.",
     )
 
     @Option(name: [.short, .customLong("input")], help: "Input directory containing .lproj folders.")
@@ -1047,11 +1075,10 @@ struct MigrateToXCStrings: AsyncParsableCommand {
         let fm = FileManager.default
         let cwd = fm.currentDirectoryPath
 
-        let inputDir: URL
-        if let input = inputDirectory {
-            inputDir = URL(fileURLWithPath: input, relativeTo: URL(fileURLWithPath: cwd))
+        let inputDir = if let input = inputDirectory {
+            URL(fileURLWithPath: input, relativeTo: URL(fileURLWithPath: cwd))
         } else {
-            inputDir = URL(fileURLWithPath: cwd)
+            URL(fileURLWithPath: cwd)
         }
 
         let outputURL = URL(fileURLWithPath: outputPath, relativeTo: URL(fileURLWithPath: cwd))
@@ -1068,7 +1095,7 @@ struct MigrateToXCStrings: AsyncParsableCommand {
             directory: inputDir,
             stringsFileName: stringsFileName,
             stringsdictFileName: stringsdictFileName,
-            sourceLanguage: sourceLanguage
+            sourceLanguage: sourceLanguage,
         )
 
         try xcstrings.write(to: outputURL)
@@ -1081,10 +1108,12 @@ struct MigrateToXCStrings: AsyncParsableCommand {
     }
 }
 
+// MARK: - MigrateToLegacy
+
 struct MigrateToLegacy: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "to-legacy",
-        abstract: "Migrate .xcstrings file to .strings/.stringsdict format."
+        abstract: "Migrate .xcstrings file to .strings/.stringsdict format.",
     )
 
     @Argument(help: "Input .xcstrings file path.")
@@ -1108,11 +1137,10 @@ struct MigrateToLegacy: AsyncParsableCommand {
 
         let inputURL = URL(fileURLWithPath: inputPath, relativeTo: URL(fileURLWithPath: cwd))
 
-        let outputDir: URL
-        if let output = outputDirectory {
-            outputDir = URL(fileURLWithPath: output, relativeTo: URL(fileURLWithPath: cwd))
+        let outputDir: URL = if let output = outputDirectory {
+            URL(fileURLWithPath: output, relativeTo: URL(fileURLWithPath: cwd))
         } else {
-            outputDir = inputURL.deletingLastPathComponent()
+            inputURL.deletingLastPathComponent()
         }
 
         guard fm.fileExists(atPath: inputURL.path) else {
@@ -1132,7 +1160,7 @@ struct MigrateToLegacy: AsyncParsableCommand {
             xcstrings: xcstrings,
             directory: outputDir,
             stringsFileName: stringsFileName,
-            stringsdictFileName: stringsdictFileName
+            stringsdictFileName: stringsdictFileName,
         )
 
         let languages = xcstrings.presentLanguages
@@ -1143,7 +1171,7 @@ struct MigrateToLegacy: AsyncParsableCommand {
     }
 }
 
-// MARK: - Glossary Command
+// MARK: - GlossaryCommand
 
 struct GlossaryCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
@@ -1155,14 +1183,16 @@ struct GlossaryCommand: AsyncParsableCommand {
             GlossaryRemove.self,
             GlossaryInit.self,
         ],
-        defaultSubcommand: GlossaryList.self
+        defaultSubcommand: GlossaryList.self,
     )
 }
+
+// MARK: - GlossaryList
 
 struct GlossaryList: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "list",
-        abstract: "List all glossary terms."
+        abstract: "List all glossary terms.",
     )
 
     @Option(name: [.short, .customLong("file")], help: "Glossary file path.")
@@ -1220,10 +1250,12 @@ struct GlossaryList: AsyncParsableCommand {
     }
 }
 
+// MARK: - GlossaryAdd
+
 struct GlossaryAdd: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "add",
-        abstract: "Add a term to the glossary."
+        abstract: "Add a term to the glossary.",
     )
 
     @Argument(help: "The term to add.")
@@ -1235,7 +1267,11 @@ struct GlossaryAdd: AsyncParsableCommand {
     @Option(name: [.short, .customLong("definition")], help: "Definition or context for the term.")
     var definition: String?
 
-    @Option(name: [.short, .customLong("translation")], parsing: .upToNextOption, help: "Translations as lang:value pairs (e.g., fr:Bonjour de:Hallo).")
+    @Option(
+        name: [.short, .customLong("translation")],
+        parsing: .upToNextOption,
+        help: "Translations as lang:value pairs (e.g., fr:Bonjour de:Hallo).",
+    )
     var translations: [String] = []
 
     @Flag(name: .customLong("do-not-translate"), help: "Mark term as do-not-translate (brand names, etc.).")
@@ -1264,7 +1300,7 @@ struct GlossaryAdd: AsyncParsableCommand {
             definition: definition,
             translations: translationDict,
             caseSensitive: caseSensitive,
-            doNotTranslate: doNotTranslate
+            doNotTranslate: doNotTranslate,
         )
 
         await glossary.addTerm(entry)
@@ -1283,10 +1319,12 @@ struct GlossaryAdd: AsyncParsableCommand {
     }
 }
 
+// MARK: - GlossaryRemove
+
 struct GlossaryRemove: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "remove",
-        abstract: "Remove a term from the glossary."
+        abstract: "Remove a term from the glossary.",
     )
 
     @Argument(help: "The term to remove.")
@@ -1313,10 +1351,12 @@ struct GlossaryRemove: AsyncParsableCommand {
     }
 }
 
+// MARK: - GlossaryInit
+
 struct GlossaryInit: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "init",
-        abstract: "Create a new glossary file."
+        abstract: "Create a new glossary file.",
     )
 
     @Option(name: [.short, .customLong("file")], help: "Glossary file path.")
@@ -1328,7 +1368,7 @@ struct GlossaryInit: AsyncParsableCommand {
     func run() async throws {
         let glossaryURL = URL(fileURLWithPath: glossaryPath)
 
-        if FileManager.default.fileExists(atPath: glossaryURL.path) && !force {
+        if FileManager.default.fileExists(atPath: glossaryURL.path), !force {
             printError("Glossary file already exists: \(glossaryPath)")
             printError("Use --force to overwrite.")
             throw ExitCode.failure
@@ -1340,7 +1380,7 @@ struct GlossaryInit: AsyncParsableCommand {
         await glossary.addTerm(GlossaryEntry(
             term: "AppName",
             definition: "Replace with your app name",
-            doNotTranslate: true
+            doNotTranslate: true,
         ))
 
         try await glossary.forceSave()
@@ -1353,7 +1393,7 @@ struct GlossaryInit: AsyncParsableCommand {
     }
 }
 
-// MARK: - Cache Command
+// MARK: - CacheCommand
 
 struct CacheCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
@@ -1363,14 +1403,16 @@ struct CacheCommand: AsyncParsableCommand {
             CacheInfo.self,
             CacheClear.self,
         ],
-        defaultSubcommand: CacheInfo.self
+        defaultSubcommand: CacheInfo.self,
     )
 }
+
+// MARK: - CacheInfo
 
 struct CacheInfo: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "info",
-        abstract: "Show translation cache information."
+        abstract: "Show translation cache information.",
     )
 
     @Option(name: [.short, .customLong("file")], help: "Cache file path.")
@@ -1406,7 +1448,7 @@ struct CacheInfo: AsyncParsableCommand {
                 cacheFile: cachePath,
                 version: stats.cacheVersion,
                 totalEntries: stats.totalEntries,
-                lastUpdated: stats.lastUpdated.map { dateFormatter.string(from: $0) }
+                lastUpdated: stats.lastUpdated.map { dateFormatter.string(from: $0) },
             )
 
             let encoder = JSONEncoder()
@@ -1429,10 +1471,12 @@ struct CacheInfo: AsyncParsableCommand {
     }
 }
 
+// MARK: - CacheClear
+
 struct CacheClear: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "clear",
-        abstract: "Clear the translation cache."
+        abstract: "Clear the translation cache.",
     )
 
     @Option(name: [.short, .customLong("file")], help: "Cache file path.")
@@ -1461,12 +1505,12 @@ struct CacheClear: AsyncParsableCommand {
     }
 }
 
-// MARK: - Targets Command
+// MARK: - TargetsCommand
 
 struct TargetsCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "targets",
-        abstract: "Discover and list localization targets in the project."
+        abstract: "Discover and list localization targets in the project.",
     )
 
     @Option(name: [.short, .customLong("path")], help: "Project root path.")
@@ -1482,11 +1526,10 @@ struct TargetsCommand: AsyncParsableCommand {
         let fm = FileManager.default
         let cwd = fm.currentDirectoryPath
 
-        let rootURL: URL
-        if let path = projectPath {
-            rootURL = URL(fileURLWithPath: path, relativeTo: URL(fileURLWithPath: cwd))
+        let rootURL = if let path = projectPath {
+            URL(fileURLWithPath: path, relativeTo: URL(fileURLWithPath: cwd))
         } else {
-            rootURL = URL(fileURLWithPath: cwd)
+            URL(fileURLWithPath: cwd)
         }
 
         let detector = ProjectStructureDetector()
@@ -1515,10 +1558,10 @@ struct TargetsCommand: AsyncParsableCommand {
                         type: target.type.rawValue,
                         path: target.xcstringsURL.path,
                         defaultLocalization: target.defaultLocalization,
-                        parentPackage: target.parentPackage
+                        parentPackage: target.parentPackage,
                     )
                 },
-                packages: structure.packages.map(\.name)
+                packages: structure.packages.map(\.name),
             )
 
             let encoder = JSONEncoder()
@@ -1563,12 +1606,12 @@ struct TargetsCommand: AsyncParsableCommand {
     }
 }
 
-// MARK: - Sync Keys Command
+// MARK: - SyncKeysCommand
 
 struct SyncKeysCommand: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "sync-keys",
-        abstract: "Synchronize localization keys across multiple catalogs."
+        abstract: "Synchronize localization keys across multiple catalogs.",
     )
 
     @Argument(help: "xcstrings files to synchronize (at least 2).")
@@ -1577,7 +1620,10 @@ struct SyncKeysCommand: AsyncParsableCommand {
     @Flag(name: .customLong("all-targets"), help: "Synchronize all discovered targets.")
     var allTargets = false
 
-    @Option(name: .customLong("sort"), help: "Key sorting mode: alphabetical, alphabeticalDescending, byExtractionState, preserve.")
+    @Option(
+        name: .customLong("sort"),
+        help: "Key sorting mode: alphabetical, alphabeticalDescending, byExtractionState, preserve.",
+    )
     var sortMode: String = "alphabetical"
 
     @Flag(name: .customLong("dry-run"), help: "Show what would be synchronized without making changes.")
@@ -1647,36 +1693,40 @@ struct SyncKeysCommand: AsyncParsableCommand {
                     }
                     print("    Recommendation: \(conflict.recommendation)")
                 }
-                if report.conflicts.count > 5 && !verbose {
+                if report.conflicts.count > 5, !verbose {
                     print("  ... and \(report.conflicts.count - 5) more. Use -v for full list.")
                 }
             }
         }
 
         // Synchronize
-        let syncSortMode: KeySortMode
-        switch sortMode.lowercased() {
-        case "alphabetical", "asc":
-            syncSortMode = .alphabetical
-        case "alphabeticaldescending", "desc":
-            syncSortMode = .alphabeticalDescending
-        case "byextractionstate", "extraction":
-            syncSortMode = .byExtractionState
-        case "preserve", "none":
-            syncSortMode = .preserve
+        let syncSortMode: KeySortMode = switch sortMode.lowercased() {
+        case "alphabetical",
+             "asc":
+            .alphabetical
+        case "alphabeticaldescending",
+             "desc":
+            .alphabeticalDescending
+        case "byextractionstate",
+             "extraction":
+            .byExtractionState
+        case "none",
+             "preserve":
+            .preserve
+
         default:
-            syncSortMode = .alphabetical
+            .alphabetical
         }
 
         let synchronizer = CatalogSynchronizer()
         let syncOptions = SyncOptions(
             sortAfterSync: syncSortMode != .preserve,
-            dryRun: dryRun
+            dryRun: dryRun,
         )
 
         let syncReport = try await synchronizer.synchronize(
             catalogs: catalogURLs,
-            options: syncOptions
+            options: syncOptions,
         )
 
         if jsonOutput {
@@ -1693,9 +1743,9 @@ struct SyncKeysCommand: AsyncParsableCommand {
                 totalKeysProcessed: syncReport.totalKeysProcessed,
                 catalogsModified: syncReport.catalogsModified,
                 totalKeysAdded: syncReport.totalKeysAdded,
-                addedByFile: Dictionary(uniqueKeysWithValues: syncReport.addedKeys.map { (url, keys) in
+                addedByFile: Dictionary(uniqueKeysWithValues: syncReport.addedKeys.map { url, keys in
                     (url.lastPathComponent, keys)
-                })
+                }),
             )
 
             let encoder = JSONEncoder()
@@ -1707,7 +1757,7 @@ struct SyncKeysCommand: AsyncParsableCommand {
             print("=========================")
             print(syncReport.summary)
 
-            if verbose && !syncReport.addedKeys.isEmpty {
+            if verbose, !syncReport.addedKeys.isEmpty {
                 print("\nKeys added by file:")
                 for (url, keys) in syncReport.addedKeys {
                     print("  \(url.lastPathComponent): \(keys.count) keys")

@@ -5,21 +5,80 @@
 
 import Foundation
 
-// MARK: - DeepL Provider
+// MARK: - DeepLProvider
 
 /// Translation provider using DeepL's Translation API.
 ///
 /// DeepL is a dedicated translation service that provides high-quality translations
 /// without using LLM prompts. It supports formality settings for some languages.
 public final class DeepLProvider: TranslationProvider, @unchecked Sendable {
-    public let identifier = "deepl"
-    public let displayName = "DeepL"
+    // MARK: Lifecycle
 
-    private let httpClient: HTTPClient
-    private let config: DeepLProviderConfig
+    public init(config: DeepLProviderConfig, httpClient: HTTPClient = HTTPClient()) {
+        self.config = config
+        self.httpClient = httpClient
+    }
+
+    /// Convenience initializer that reads API key from environment.
+    public convenience init(
+        apiKeyEnvVar: String = "DEEPL_API_KEY",
+        formality: Formality = .default,
+    ) throws {
+        guard let apiKey = ProcessInfo.processInfo.environment[apiKeyEnvVar] else {
+            throw ConfigurationError.environmentVariableNotFound(apiKeyEnvVar)
+        }
+        let tier: DeepLProviderConfig.Tier = apiKey.hasSuffix(":fx") ? .free : .pro
+        let config = DeepLProviderConfig(apiKey: apiKey, tier: tier, formality: formality)
+        self.init(config: config)
+    }
+
+    // MARK: Public
 
     /// Configuration for the DeepL provider.
     public struct DeepLProviderConfig: Sendable {
+        // MARK: Lifecycle
+
+        public init(
+            apiKey: String,
+            tier: Tier = .free,
+            formality: Formality = .default,
+            preserveFormatting: Bool = true,
+        ) {
+            self.apiKey = apiKey
+            baseURL = tier.baseURL
+            self.formality = formality
+            self.preserveFormatting = preserveFormatting
+        }
+
+        public init(
+            apiKey: String,
+            baseURL: String,
+            formality: Formality = .default,
+            preserveFormatting: Bool = true,
+        ) {
+            self.apiKey = apiKey
+            self.baseURL = baseURL
+            self.formality = formality
+            self.preserveFormatting = preserveFormatting
+        }
+
+        // MARK: Public
+
+        /// Tier (free or pro) - determines API base URL.
+        public enum Tier: String, Sendable {
+            case free
+            case pro
+
+            // MARK: Internal
+
+            var baseURL: String {
+                switch self {
+                case .free: "https://api-free.deepl.com/v2"
+                case .pro: "https://api.deepl.com/v2"
+                }
+            }
+        }
+
         /// API key for authentication.
         public let apiKey: String
 
@@ -32,74 +91,22 @@ public final class DeepLProvider: TranslationProvider, @unchecked Sendable {
         /// Whether to preserve formatting.
         public let preserveFormatting: Bool
 
-        /// Tier (free or pro) - determines API base URL.
-        public enum Tier: String, Sendable {
-            case free
-            case pro
-
-            var baseURL: String {
-                switch self {
-                case .free: return "https://api-free.deepl.com/v2"
-                case .pro: return "https://api.deepl.com/v2"
-                }
-            }
-        }
-
-        public init(
-            apiKey: String,
-            tier: Tier = .free,
-            formality: Formality = .default,
-            preserveFormatting: Bool = true
-        ) {
-            self.apiKey = apiKey
-            self.baseURL = tier.baseURL
-            self.formality = formality
-            self.preserveFormatting = preserveFormatting
-        }
-
-        public init(
-            apiKey: String,
-            baseURL: String,
-            formality: Formality = .default,
-            preserveFormatting: Bool = true
-        ) {
-            self.apiKey = apiKey
-            self.baseURL = baseURL
-            self.formality = formality
-            self.preserveFormatting = preserveFormatting
-        }
-
         /// Create config from provider configuration.
         public static func from(
             providerConfig: ProviderConfig?,
-            apiKey: String
+            apiKey: String,
         ) -> DeepLProviderConfig {
             let tier: Tier = apiKey.hasSuffix(":fx") ? .free : .pro
             return DeepLProviderConfig(
                 apiKey: apiKey,
                 tier: tier,
-                formality: providerConfig?.formality ?? .default
+                formality: providerConfig?.formality ?? .default,
             )
         }
     }
 
-    public init(config: DeepLProviderConfig, httpClient: HTTPClient = HTTPClient()) {
-        self.config = config
-        self.httpClient = httpClient
-    }
-
-    /// Convenience initializer that reads API key from environment.
-    public convenience init(
-        apiKeyEnvVar: String = "DEEPL_API_KEY",
-        formality: Formality = .default
-    ) throws {
-        guard let apiKey = ProcessInfo.processInfo.environment[apiKeyEnvVar] else {
-            throw ConfigurationError.environmentVariableNotFound(apiKeyEnvVar)
-        }
-        let tier: DeepLProviderConfig.Tier = apiKey.hasSuffix(":fx") ? .free : .pro
-        let config = DeepLProviderConfig(apiKey: apiKey, tier: tier, formality: formality)
-        self.init(config: config)
-    }
+    public let identifier = "deepl"
+    public let displayName = "DeepL"
 
     // MARK: - TranslationProvider
 
@@ -117,7 +124,7 @@ public final class DeepLProvider: TranslationProvider, @unchecked Sendable {
         _ strings: [String],
         from source: LanguageCode,
         to target: LanguageCode,
-        context: TranslationContext?
+        context: TranslationContext?,
     ) async throws -> [TranslationResult] {
         guard !strings.isEmpty else { return [] }
 
@@ -130,7 +137,7 @@ public final class DeepLProvider: TranslationProvider, @unchecked Sendable {
             sourceLang: sourceLang,
             targetLang: targetLang,
             formality: mapFormality(config.formality, for: targetLang),
-            preserveFormatting: config.preserveFormatting
+            preserveFormatting: config.preserveFormatting,
         )
 
         let response: TranslateResponse
@@ -140,8 +147,8 @@ public final class DeepLProvider: TranslationProvider, @unchecked Sendable {
                 body: request,
                 headers: [
                     "Authorization": "DeepL-Auth-Key \(config.apiKey)",
-                    "Content-Type": "application/json"
-                ]
+                    "Content-Type": "application/json",
+                ],
             )
         } catch {
             throw mapHTTPError(error)
@@ -149,7 +156,7 @@ public final class DeepLProvider: TranslationProvider, @unchecked Sendable {
 
         guard response.translations.count == strings.count else {
             throw TranslationError.invalidResponse(
-                "Expected \(strings.count) translations, got \(response.translations.count)"
+                "Expected \(strings.count) translations, got \(response.translations.count)",
             )
         }
 
@@ -160,11 +167,16 @@ public final class DeepLProvider: TranslationProvider, @unchecked Sendable {
                 confidence: 1.0, // DeepL doesn't provide confidence scores
                 provider: identifier,
                 metadata: [
-                    "detected_source_language": translation.detectedSourceLanguage ?? sourceLang
-                ]
+                    "detected_source_language": translation.detectedSourceLanguage ?? sourceLang,
+                ],
             )
         }
     }
+
+    // MARK: Private
+
+    private let httpClient: HTTPClient
+    private let config: DeepLProviderConfig
 
     // MARK: - Language Code Conversion
 
@@ -174,10 +186,15 @@ public final class DeepLProvider: TranslationProvider, @unchecked Sendable {
 
         // Handle regional variants
         switch upperCode {
-        case "EN-US", "EN-GB": return upperCode
-        case "PT-BR", "PT-PT": return upperCode
-        case "ZH-HANS", "ZH-CN": return "ZH-HANS"
-        case "ZH-HANT", "ZH-TW": return "ZH-HANT"
+        case "EN-GB",
+             "EN-US": return upperCode
+        case "PT-BR",
+             "PT-PT": return upperCode
+        case "ZH-CN",
+             "ZH-HANS": return "ZH-HANS"
+        case "ZH-HANT",
+             "ZH-TW": return "ZH-HANT"
+
         default:
             // For source language, DeepL only wants the base code
             let base = upperCode.split(separator: "-").first.map(String.init) ?? upperCode
@@ -210,21 +227,29 @@ public final class DeepLProvider: TranslationProvider, @unchecked Sendable {
         switch error {
         case .statusCode(403, _):
             return .providerError(provider: identifier, message: "Authentication failed - check API key")
+
         case .statusCode(429, _):
             return .rateLimitExceeded(provider: identifier, retryAfter: nil)
+
         case .statusCode(456, _):
             return .providerError(provider: identifier, message: "Quota exceeded")
+
         case .statusCode(503, _):
             return .providerError(provider: identifier, message: "Service temporarily unavailable")
+
         case let .statusCode(code, data):
             let message = extractDeepLError(from: data) ?? "HTTP \(code)"
             return .providerError(provider: identifier, message: message)
+
         case .timeout:
             return .providerError(provider: identifier, message: "Request timed out")
+
         case let .connectionFailed(msg):
             return .providerError(provider: identifier, message: "Connection failed: \(msg)")
+
         case let .decodingFailed(msg):
             return .invalidResponse("Failed to decode response: \(msg)")
+
         default:
             return .providerError(provider: identifier, message: error.localizedDescription)
         }
@@ -242,16 +267,10 @@ public final class DeepLProvider: TranslationProvider, @unchecked Sendable {
     }
 }
 
-// MARK: - DeepL API Models
+// MARK: - TranslateRequest
 
 /// Request body for translate endpoint.
 private struct TranslateRequest: Encodable {
-    let text: [String]
-    let sourceLang: String
-    let targetLang: String
-    let formality: String?
-    let preserveFormatting: Bool?
-
     enum CodingKeys: String, CodingKey {
         case text
         case sourceLang = "source_lang"
@@ -259,6 +278,12 @@ private struct TranslateRequest: Encodable {
         case formality
         case preserveFormatting = "preserve_formatting"
     }
+
+    let text: [String]
+    let sourceLang: String
+    let targetLang: String
+    let formality: String?
+    let preserveFormatting: Bool?
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -270,17 +295,19 @@ private struct TranslateRequest: Encodable {
     }
 }
 
+// MARK: - TranslateResponse
+
 /// Response body from translate endpoint.
 private struct TranslateResponse: Decodable {
-    let translations: [Translation]
-
     struct Translation: Decodable {
-        let text: String
-        let detectedSourceLanguage: String?
-
         enum CodingKeys: String, CodingKey {
             case text
             case detectedSourceLanguage = "detected_source_language"
         }
+
+        let text: String
+        let detectedSourceLanguage: String?
     }
+
+    let translations: [Translation]
 }

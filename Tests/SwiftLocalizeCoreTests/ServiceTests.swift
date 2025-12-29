@@ -4,13 +4,22 @@
 //
 
 import Foundation
-import Testing
 @testable import SwiftLocalizeCore
+import Testing
 
-// MARK: - Mock Translation Provider
+// MARK: - MockTranslationProvider
 
 /// Mock provider for testing TranslationService.
 final class MockTranslationProvider: TranslationProvider, @unchecked Sendable {
+    // MARK: Lifecycle
+
+    init(identifier: String = "mock", displayName: String = "Mock Provider") {
+        self.identifier = identifier
+        self.displayName = displayName
+    }
+
+    // MARK: Internal
+
     let identifier: String
     let displayName: String
 
@@ -20,11 +29,6 @@ final class MockTranslationProvider: TranslationProvider, @unchecked Sendable {
     var delay: Duration = .zero
     var isAvailableValue = true
     var translateCallCount = 0
-
-    init(identifier: String = "mock", displayName: String = "Mock Provider") {
-        self.identifier = identifier
-        self.displayName = displayName
-    }
 
     func isAvailable() async -> Bool {
         isAvailableValue
@@ -38,7 +42,7 @@ final class MockTranslationProvider: TranslationProvider, @unchecked Sendable {
         _ strings: [String],
         from source: LanguageCode,
         to target: LanguageCode,
-        context: TranslationContext?
+        context: TranslationContext?,
     ) async throws -> [TranslationResult] {
         translateCallCount += 1
 
@@ -55,17 +59,16 @@ final class MockTranslationProvider: TranslationProvider, @unchecked Sendable {
                 original: string,
                 translated: translations[string] ?? "[\(target.code)] \(string)",
                 confidence: translations[string] != nil ? 1.0 : 0.8,
-                provider: identifier
+                provider: identifier,
             )
         }
     }
 }
 
-// MARK: - Rate Limiter Tests
+// MARK: - RateLimiterTests
 
 @Suite("RateLimiter Tests")
 struct RateLimiterTests {
-
     @Test("Rate limiter initializes with correct token count")
     func initialization() async {
         let limiter = RateLimiter(requestsPerMinute: 60)
@@ -79,7 +82,7 @@ struct RateLimiterTests {
         let limiter = RateLimiter(requestsPerMinute: 10)
 
         // Should be able to acquire 10 tokens quickly
-        for _ in 0..<10 {
+        for _ in 0 ..< 10 {
             await limiter.acquire()
         }
     }
@@ -89,7 +92,7 @@ struct RateLimiterTests {
         let limiter = RateLimiter(requestsPerMinute: 60) // 1 token per second
 
         // Exhaust all tokens
-        for _ in 0..<60 {
+        for _ in 0 ..< 60 {
             await limiter.acquire()
         }
 
@@ -101,11 +104,10 @@ struct RateLimiterTests {
     }
 }
 
-// MARK: - Provider Registry Tests
+// MARK: - ProviderRegistryTests
 
 @Suite("ProviderRegistry Tests")
 struct ProviderRegistryTests {
-
     @Test("Register and retrieve provider")
     func registerAndRetrieve() async {
         let registry = ProviderRegistry()
@@ -154,11 +156,10 @@ struct ProviderRegistryTests {
     }
 }
 
-// MARK: - Change Detector Tests
+// MARK: - ChangeDetectorTests
 
 @Suite("ChangeDetector Tests")
 struct ChangeDetectorTests {
-
     @Test("Detect new strings")
     func detectNewStrings() async throws {
         let tempDir = FileManager.default.temporaryDirectory
@@ -171,20 +172,20 @@ struct ChangeDetectorTests {
             strings: [
                 "hello": StringEntry(
                     localizations: [
-                        "en": Localization(value: "Hello")
-                    ]
+                        "en": Localization(value: "Hello"),
+                    ],
                 ),
                 "world": StringEntry(
                     localizations: [
-                        "en": Localization(value: "World")
-                    ]
-                )
-            ]
+                        "en": Localization(value: "World"),
+                    ],
+                ),
+            ],
         )
 
         let result = await detector.detectChanges(
             in: xcstrings,
-            targetLanguages: [LanguageCode("fr")]
+            targetLanguages: [LanguageCode("fr")],
         )
 
         #expect(result.newStrings.count == 2)
@@ -208,10 +209,10 @@ struct ChangeDetectorTests {
                 "hello": StringEntry(
                     localizations: [
                         "en": Localization(value: "Hello"),
-                        "fr": Localization(value: "Bonjour", state: .translated)
-                    ]
-                )
-            ]
+                        "fr": Localization(value: "Bonjour", state: .translated),
+                    ],
+                ),
+            ],
         )
 
         // Mark as translated in cache
@@ -219,12 +220,12 @@ struct ChangeDetectorTests {
             key: "hello",
             sourceValue: "Hello",
             languages: ["fr"],
-            provider: "test"
+            provider: "test",
         )
 
         let result = await detector.detectChanges(
             in: xcstrings,
-            targetLanguages: [LanguageCode("fr")]
+            targetLanguages: [LanguageCode("fr")],
         )
 
         #expect(result.unchanged.contains("hello"))
@@ -246,7 +247,7 @@ struct ChangeDetectorTests {
             key: "hello",
             sourceValue: "Hello",
             languages: ["fr"],
-            provider: "test"
+            provider: "test",
         )
 
         // Now check with modified source
@@ -256,15 +257,15 @@ struct ChangeDetectorTests {
                 "hello": StringEntry(
                     localizations: [
                         "en": Localization(value: "Hello World"), // Changed!
-                        "fr": Localization(value: "Bonjour", state: .translated)
-                    ]
-                )
-            ]
+                        "fr": Localization(value: "Bonjour", state: .translated),
+                    ],
+                ),
+            ],
         )
 
         let result = await detector.detectChanges(
             in: xcstrings,
-            targetLanguages: [LanguageCode("fr")]
+            targetLanguages: [LanguageCode("fr")],
         )
 
         #expect(result.modifiedStrings.contains("hello"))
@@ -287,16 +288,16 @@ struct ChangeDetectorTests {
                 "hello": StringEntry(
                     localizations: [
                         "en": Localization(value: "Hello"),
-                        "fr": Localization(value: "Bonjour", state: .translated)
-                    ]
-                )
-            ]
+                        "fr": Localization(value: "Bonjour", state: .translated),
+                    ],
+                ),
+            ],
         )
 
         let result = await detector.detectChanges(
             in: xcstrings,
             targetLanguages: [LanguageCode("fr")],
-            forceRetranslate: true
+            forceRetranslate: true,
         )
 
         #expect(result.newStrings.contains("hello"))
@@ -317,7 +318,7 @@ struct ChangeDetectorTests {
             key: "hello",
             sourceValue: "Hello",
             languages: ["fr", "de"],
-            provider: "test"
+            provider: "test",
         )
         try await detector.save()
 
@@ -342,7 +343,7 @@ struct ChangeDetectorTests {
             key: "hello",
             sourceValue: "Hello",
             languages: ["fr"],
-            provider: "test"
+            provider: "test",
         )
 
         await detector.clear()
@@ -364,13 +365,13 @@ struct ChangeDetectorTests {
             key: "hello",
             sourceValue: "Hello",
             languages: ["fr"],
-            provider: "test"
+            provider: "test",
         )
         await detector.markTranslated(
             key: "world",
             sourceValue: "World",
             languages: ["fr"],
-            provider: "test"
+            provider: "test",
         )
 
         await detector.remove(key: "hello")
@@ -394,7 +395,7 @@ struct ChangeDetectorTests {
             key: "hello",
             sourceValue: "Hello",
             languages: ["fr"],
-            provider: "test"
+            provider: "test",
         )
 
         let xcstrings = XCStrings(
@@ -403,16 +404,16 @@ struct ChangeDetectorTests {
                 "hello": StringEntry(
                     localizations: [
                         "en": Localization(value: "Hello"),
-                        "fr": Localization(value: "Bonjour", state: .translated)
-                    ]
-                )
-            ]
+                        "fr": Localization(value: "Bonjour", state: .translated),
+                    ],
+                ),
+            ],
         )
 
         // Check for French and German
         let result = await detector.detectChanges(
             in: xcstrings,
-            targetLanguages: [LanguageCode("fr"), LanguageCode("de")]
+            targetLanguages: [LanguageCode("fr"), LanguageCode("de")],
         )
 
         // German should need translation, French should not
@@ -425,16 +426,15 @@ struct ChangeDetectorTests {
     }
 }
 
-// MARK: - Translation Service Tests
+// MARK: - TranslationServiceTests
 
 @Suite("TranslationService Tests")
 struct TranslationServiceTests {
-
     @Test("Service initializes with configuration")
     func initialization() async {
         let config = Configuration(
             sourceLanguage: LanguageCode("en"),
-            targetLanguages: [LanguageCode("fr")]
+            targetLanguages: [LanguageCode("fr")],
         )
 
         let service = TranslationService(configuration: config)
@@ -446,7 +446,7 @@ struct TranslationServiceTests {
     func registerProvider() async {
         let config = Configuration(
             sourceLanguage: LanguageCode("en"),
-            targetLanguages: [LanguageCode("fr")]
+            targetLanguages: [LanguageCode("fr")],
         )
 
         let service = TranslationService(configuration: config)
@@ -462,15 +462,15 @@ struct TranslationServiceTests {
             sourceLanguage: LanguageCode("en"),
             targetLanguages: [LanguageCode("fr")],
             providers: [
-                ProviderConfiguration(name: .openai, enabled: true, priority: 1)
-            ]
+                ProviderConfiguration(name: .openai, enabled: true, priority: 1),
+            ],
         )
 
         let registry = ProviderRegistry()
         let mockProvider = MockTranslationProvider(identifier: "openai")
         mockProvider.translations = [
             "Hello": "Bonjour",
-            "World": "Monde"
+            "World": "Monde",
         ]
         await registry.register(mockProvider)
 
@@ -479,7 +479,7 @@ struct TranslationServiceTests {
         let results = try await service.translateBatch(
             ["Hello", "World"],
             from: LanguageCode("en"),
-            to: LanguageCode("fr")
+            to: LanguageCode("fr"),
         )
 
         #expect(results.count == 2)
@@ -495,8 +495,8 @@ struct TranslationServiceTests {
             targetLanguages: [LanguageCode("fr")],
             providers: [
                 ProviderConfiguration(name: .openai, enabled: true, priority: 1),
-                ProviderConfiguration(name: .anthropic, enabled: true, priority: 2)
-            ]
+                ProviderConfiguration(name: .anthropic, enabled: true, priority: 2),
+            ],
         )
 
         let registry = ProviderRegistry()
@@ -516,7 +516,7 @@ struct TranslationServiceTests {
         let results = try await service.translateBatch(
             ["Hello"],
             from: LanguageCode("en"),
-            to: LanguageCode("fr")
+            to: LanguageCode("fr"),
         )
 
         #expect(results.count == 1)
@@ -529,7 +529,7 @@ struct TranslationServiceTests {
         let config = Configuration(
             sourceLanguage: LanguageCode("en"),
             targetLanguages: [LanguageCode("fr")],
-            providers: []
+            providers: [],
         )
 
         let registry = ProviderRegistry()
@@ -539,7 +539,7 @@ struct TranslationServiceTests {
             try await service.translateBatch(
                 ["Hello"],
                 from: LanguageCode("en"),
-                to: LanguageCode("fr")
+                to: LanguageCode("fr"),
             )
         }
     }
@@ -548,7 +548,7 @@ struct TranslationServiceTests {
     func emptyStringsArray() async throws {
         let config = Configuration(
             sourceLanguage: LanguageCode("en"),
-            targetLanguages: [LanguageCode("fr")]
+            targetLanguages: [LanguageCode("fr")],
         )
 
         let service = TranslationService(configuration: config)
@@ -556,28 +556,27 @@ struct TranslationServiceTests {
         let results = try await service.translateBatch(
             [],
             from: LanguageCode("en"),
-            to: LanguageCode("fr")
+            to: LanguageCode("fr"),
         )
 
         #expect(results.isEmpty)
     }
 }
 
-// MARK: - Change Detection Result Tests
+// MARK: - ChangeDetectionResultTests
 
 @Suite("ChangeDetectionResult Tests")
 struct ChangeDetectionResultTests {
-
     @Test("Total translation operations calculated correctly")
     func totalOperations() {
         let result = ChangeDetectionResult(
             stringsToTranslate: [
                 "hello": Set([LanguageCode("fr"), LanguageCode("de")]),
-                "world": Set([LanguageCode("fr")])
+                "world": Set([LanguageCode("fr")]),
             ],
             unchanged: [],
             newStrings: ["hello", "world"],
-            modifiedStrings: []
+            modifiedStrings: [],
         )
 
         #expect(result.totalTranslationOperations == 3) // 2 + 1
@@ -590,7 +589,7 @@ struct ChangeDetectionResultTests {
             stringsToTranslate: ["hello": Set([LanguageCode("fr")])],
             unchanged: [],
             newStrings: ["hello"],
-            modifiedStrings: []
+            modifiedStrings: [],
         )
 
         #expect(result.hasChanges)
@@ -602,18 +601,17 @@ struct ChangeDetectionResultTests {
             stringsToTranslate: [:],
             unchanged: ["hello"],
             newStrings: [],
-            modifiedStrings: []
+            modifiedStrings: [],
         )
 
         #expect(!result.hasChanges)
     }
 }
 
-// MARK: - Cache Statistics Tests
+// MARK: - CacheStatisticsTests
 
 @Suite("CacheStatistics Tests")
 struct CacheStatisticsTests {
-
     @Test("Statistics reflect cache state")
     func statisticsReflectState() async {
         let tempDir = FileManager.default.temporaryDirectory
@@ -625,13 +623,13 @@ struct CacheStatisticsTests {
             key: "hello",
             sourceValue: "Hello",
             languages: ["fr"],
-            provider: "test"
+            provider: "test",
         )
         await detector.markTranslated(
             key: "world",
             sourceValue: "World",
             languages: ["de"],
-            provider: "test2"
+            provider: "test2",
         )
 
         let stats = await detector.statistics
@@ -644,18 +642,17 @@ struct CacheStatisticsTests {
     }
 }
 
-// MARK: - Translation Cache Tests
+// MARK: - TranslationCacheTests
 
 @Suite("TranslationCache Tests")
 struct TranslationCacheTests {
-
     @Test("Cache entry stores all properties")
     func cacheEntryProperties() {
         let entry = CacheEntry(
             sourceHash: "abc123",
             translatedLanguages: ["fr", "de"],
             lastModified: Date(),
-            provider: "openai"
+            provider: "openai",
         )
 
         #expect(entry.sourceHash == "abc123")
@@ -674,9 +671,9 @@ struct TranslationCacheTests {
                     sourceHash: "abc",
                     translatedLanguages: ["fr"],
                     lastModified: Date(),
-                    provider: "test"
-                )
-            ]
+                    provider: "test",
+                ),
+            ],
         )
 
         let encoder = JSONEncoder()
@@ -693,22 +690,21 @@ struct TranslationCacheTests {
     }
 }
 
-// MARK: - Prompt Builder Tests
+// MARK: - TranslationPromptBuilderTests
 
 @Suite("TranslationPromptBuilder Tests")
 struct TranslationPromptBuilderTests {
-
     @Test("System prompt includes app context")
     func systemPromptIncludesContext() {
         let builder = TranslationPromptBuilder()
         let context = TranslationContext(
             appDescription: "A fuel tracking app",
-            domain: "automotive"
+            domain: "automotive",
         )
 
         let prompt = builder.buildSystemPrompt(
             context: context,
-            targetLanguage: LanguageCode("fr")
+            targetLanguage: LanguageCode("fr"),
         )
 
         #expect(prompt.contains("fuel tracking"))
@@ -722,18 +718,18 @@ struct TranslationPromptBuilderTests {
             glossaryTerms: [
                 GlossaryTerm(
                     term: "LotoFuel",
-                    doNotTranslate: true
+                    doNotTranslate: true,
                 ),
                 GlossaryTerm(
                     term: "Fill-up",
-                    translations: ["fr": "Plein"]
-                )
-            ]
+                    translations: ["fr": "Plein"],
+                ),
+            ],
         )
 
         let prompt = builder.buildSystemPrompt(
             context: context,
-            targetLanguage: LanguageCode("fr")
+            targetLanguage: LanguageCode("fr"),
         )
 
         #expect(prompt.contains("LotoFuel"))
@@ -749,7 +745,7 @@ struct TranslationPromptBuilderTests {
         let prompt = builder.buildUserPrompt(
             strings: ["Hello", "World"],
             context: nil,
-            targetLanguage: LanguageCode("fr")
+            targetLanguage: LanguageCode("fr"),
         )
 
         #expect(prompt.contains("Hello"))
@@ -767,7 +763,7 @@ struct TranslationPromptBuilderTests {
         let results = try builder.parseResponse(
             response,
             originalStrings: ["Hello", "World"],
-            provider: "test"
+            provider: "test",
         )
 
         #expect(results.count == 2)
@@ -787,7 +783,7 @@ struct TranslationPromptBuilderTests {
         let results = try builder.parseResponse(
             response,
             originalStrings: ["Hello"],
-            provider: "test"
+            provider: "test",
         )
 
         #expect(results.count == 1)
@@ -804,7 +800,7 @@ struct TranslationPromptBuilderTests {
         let results = try builder.parseResponse(
             response,
             originalStrings: ["Hello", "World"],
-            provider: "test"
+            provider: "test",
         )
 
         #expect(results.count == 2)
@@ -821,7 +817,7 @@ struct TranslationPromptBuilderTests {
             try builder.parseResponse(
                 "not valid json",
                 originalStrings: ["Hello"],
-                provider: "test"
+                provider: "test",
             )
         }
     }

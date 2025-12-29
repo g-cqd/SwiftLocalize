@@ -5,7 +5,7 @@
 
 import Foundation
 
-// MARK: - Localization Catalog Protocol
+// MARK: - LocalizationCatalog
 
 /// Protocol for unified access to localization catalogs.
 ///
@@ -36,7 +36,7 @@ public protocol LocalizationCatalog: Sendable {
     func keysNeedingTranslation(for language: String) -> [String]
 }
 
-// MARK: - Catalog Format
+// MARK: - LocalizationFormat
 
 /// Supported localization file formats.
 public enum LocalizationFormat: String, Sendable, CaseIterable {
@@ -49,18 +49,20 @@ public enum LocalizationFormat: String, Sendable, CaseIterable {
     /// Legacy stringsdict format (.stringsdict)
     case stringsdict
 
+    // MARK: Public
+
     /// Detect format from file extension.
     public static func detect(from url: URL) -> LocalizationFormat? {
         switch url.pathExtension.lowercased() {
-        case "xcstrings": return .xcstrings
-        case "strings": return .strings
-        case "stringsdict": return .stringsdict
-        default: return nil
+        case "xcstrings": .xcstrings
+        case "strings": .strings
+        case "stringsdict": .stringsdict
+        default: nil
         }
     }
 }
 
-// MARK: - XCStrings Catalog Conformance
+// MARK: - XCStrings + LocalizationCatalog
 
 extension XCStrings: LocalizationCatalog {
     public var allKeys: [String] {
@@ -84,34 +86,36 @@ extension XCStrings: LocalizationCatalog {
     }
 }
 
-// MARK: - Unified Catalog Wrapper
+// MARK: - UnifiedCatalog
 
 /// A unified wrapper for different catalog formats.
 ///
 /// Use this to work with any localization format through a common interface.
 public struct UnifiedCatalog: LocalizationCatalog, Sendable {
-    public let sourceLanguage: String
-    public let format: LocalizationFormat
-
-    private let source: any LocalizationCatalog
+    // MARK: Lifecycle
 
     public init(_ xcstrings: XCStrings) {
-        self.sourceLanguage = xcstrings.sourceLanguage
-        self.format = .xcstrings
-        self.source = xcstrings
+        sourceLanguage = xcstrings.sourceLanguage
+        format = .xcstrings
+        source = xcstrings
     }
 
     public init(_ stringsFile: StringsFile, sourceLanguage: String) {
         self.sourceLanguage = sourceLanguage
-        self.format = .strings
-        self.source = StringsCatalogAdapter(stringsFile, sourceLanguage: sourceLanguage)
+        format = .strings
+        source = StringsCatalogAdapter(stringsFile, sourceLanguage: sourceLanguage)
     }
 
     public init(_ stringsdictFile: StringsdictFile, sourceLanguage: String) {
         self.sourceLanguage = sourceLanguage
-        self.format = .stringsdict
-        self.source = StringsdictCatalogAdapter(stringsdictFile, sourceLanguage: sourceLanguage)
+        format = .stringsdict
+        source = StringsdictCatalogAdapter(stringsdictFile, sourceLanguage: sourceLanguage)
     }
+
+    // MARK: Public
+
+    public let sourceLanguage: String
+    public let format: LocalizationFormat
 
     public var allKeys: [String] { source.allKeys }
     public var presentLanguages: Set<String> { source.presentLanguages }
@@ -131,19 +135,27 @@ public struct UnifiedCatalog: LocalizationCatalog, Sendable {
     public func keysNeedingTranslation(for language: String) -> [String] {
         source.keysNeedingTranslation(for: language)
     }
+
+    // MARK: Private
+
+    private let source: any LocalizationCatalog
 }
 
-// MARK: - Strings Catalog Adapter
+// MARK: - StringsCatalogAdapter
 
 /// Adapter to make StringsFile conform to LocalizationCatalog.
 private struct StringsCatalogAdapter: LocalizationCatalog, Sendable {
-    let file: StringsFile
-    let sourceLanguage: String
+    // MARK: Lifecycle
 
     init(_ file: StringsFile, sourceLanguage: String) {
         self.file = file
         self.sourceLanguage = sourceLanguage
     }
+
+    // MARK: Internal
+
+    let file: StringsFile
+    let sourceLanguage: String
 
     var allKeys: [String] { file.sortedKeys }
 
@@ -170,17 +182,21 @@ private struct StringsCatalogAdapter: LocalizationCatalog, Sendable {
     }
 }
 
-// MARK: - Stringsdict Catalog Adapter
+// MARK: - StringsdictCatalogAdapter
 
 /// Adapter to make StringsdictFile conform to LocalizationCatalog.
 private struct StringsdictCatalogAdapter: LocalizationCatalog, Sendable {
-    let file: StringsdictFile
-    let sourceLanguage: String
+    // MARK: Lifecycle
 
     init(_ file: StringsdictFile, sourceLanguage: String) {
         self.file = file
         self.sourceLanguage = sourceLanguage
     }
+
+    // MARK: Internal
+
+    let file: StringsdictFile
+    let sourceLanguage: String
 
     var allKeys: [String] { file.sortedKeys }
 
@@ -206,22 +222,23 @@ private struct StringsdictCatalogAdapter: LocalizationCatalog, Sendable {
     }
 }
 
-// MARK: - Multi-File Catalog
+// MARK: - MultiLanguageStringsCatalog
 
 /// A catalog composed of multiple .strings files for different languages.
 ///
 /// Use this when working with legacy projects that have separate
 /// .lproj directories with .strings files for each language.
 public struct MultiLanguageStringsCatalog: LocalizationCatalog, Sendable {
-    public let sourceLanguage: String
-
-    /// Files indexed by language code.
-    private let files: [String: StringsFile]
+    // MARK: Lifecycle
 
     public init(sourceLanguage: String, files: [StringsFile]) {
         self.sourceLanguage = sourceLanguage
         self.files = Dictionary(uniqueKeysWithValues: files.map { ($0.language, $0) })
     }
+
+    // MARK: Public
+
+    public let sourceLanguage: String
 
     public var allKeys: [String] {
         var keys: Set<String> = []
@@ -258,17 +275,22 @@ public struct MultiLanguageStringsCatalog: LocalizationCatalog, Sendable {
             return entry.value.isEmpty
         }
     }
+
+    // MARK: Private
+
+    /// Files indexed by language code.
+    private let files: [String: StringsFile]
 }
 
-// MARK: - Catalog Loader
+// MARK: - CatalogLoader
 
 /// Loads localization catalogs from files.
 public actor CatalogLoader {
-
-    private let stringsParser = StringsFileParser()
-    private let stringsdictParser = StringsdictFileParser()
+    // MARK: Lifecycle
 
     public init() {}
+
+    // MARK: Public
 
     /// Load a catalog from a file URL.
     ///
@@ -303,7 +325,7 @@ public actor CatalogLoader {
     public func loadStringsFromLproj(
         directory: URL,
         fileName: String = "Localizable.strings",
-        sourceLanguage: String = "en"
+        sourceLanguage: String = "en",
     ) async throws -> MultiLanguageStringsCatalog {
         let fm = FileManager.default
 
@@ -323,4 +345,9 @@ public actor CatalogLoader {
 
         return MultiLanguageStringsCatalog(sourceLanguage: sourceLanguage, files: files)
     }
+
+    // MARK: Private
+
+    private let stringsParser = StringsFileParser()
+    private let stringsdictParser = StringsdictFileParser()
 }

@@ -5,14 +5,13 @@
 //  Tests for CLI-related features: migrate, glossary, cache commands
 
 import Foundation
-import Testing
 @testable import SwiftLocalizeCore
+import Testing
 
-// MARK: - Glossary CLI Tests
+// MARK: - GlossaryCLITests
 
 @Suite("Glossary CLI Feature Tests")
 struct GlossaryCLITests {
-
     @Test("Create glossary and add terms programmatically")
     func createAndAddTerms() async throws {
         let tempURL = FileManager.default.temporaryDirectory
@@ -25,14 +24,14 @@ struct GlossaryCLITests {
         await glossary.addTerm(GlossaryEntry(
             term: "SwiftLocalize",
             definition: "The app name",
-            doNotTranslate: true
+            doNotTranslate: true,
         ))
 
         // Add translated term
         await glossary.addTerm(GlossaryEntry(
             term: "Settings",
             translations: ["fr": "Paramètres", "de": "Einstellungen"],
-            caseSensitive: false
+            caseSensitive: false,
         ))
 
         try await glossary.forceSave()
@@ -78,17 +77,17 @@ struct GlossaryCLITests {
 
         await glossary.addTerm(GlossaryEntry(
             term: "Hello",
-            translations: ["fr": "Bonjour"] // Has French, missing German
+            translations: ["fr": "Bonjour"], // Has French, missing German
         ))
 
         await glossary.addTerm(GlossaryEntry(
             term: "Goodbye",
-            translations: [:] // Missing all translations
+            translations: [:], // Missing all translations
         ))
 
         await glossary.addTerm(GlossaryEntry(
             term: "AppName",
-            doNotTranslate: true // Should be excluded
+            doNotTranslate: true, // Should be excluded
         ))
 
         let needsFrench = await glossary.termsNeedingTranslation(for: "fr")
@@ -106,12 +105,12 @@ struct GlossaryCLITests {
 
         await glossary.addTerm(GlossaryEntry(
             term: "SwiftLocalize",
-            doNotTranslate: true
+            doNotTranslate: true,
         ))
 
         await glossary.addTerm(GlossaryEntry(
             term: "Settings",
-            translations: ["fr": "Paramètres"]
+            translations: ["fr": "Paramètres"],
         ))
 
         let matches = await glossary.findTerms(in: "Open SwiftLocalize Settings")
@@ -123,15 +122,11 @@ struct GlossaryCLITests {
     }
 }
 
-// MARK: - Cache CLI Tests
+// MARK: - CacheCLITests
 
 @Suite("Cache CLI Feature Tests")
 struct CacheCLITests {
-
-    private func tempCacheFile() -> URL {
-        FileManager.default.temporaryDirectory
-            .appendingPathComponent("test-cache-\(UUID().uuidString).json")
-    }
+    // MARK: Internal
 
     @Test("Cache statistics show correct counts")
     func cacheStatistics() async throws {
@@ -145,14 +140,14 @@ struct CacheCLITests {
             key: "Hello",
             sourceValue: "Hello",
             languages: ["fr", "de"],
-            provider: "openai"
+            provider: "openai",
         )
 
         await detector.markTranslated(
             key: "Goodbye",
             sourceValue: "Goodbye",
             languages: ["fr"],
-            provider: "anthropic"
+            provider: "anthropic",
         )
 
         try await detector.save()
@@ -174,7 +169,7 @@ struct CacheCLITests {
             key: "Test",
             sourceValue: "Test",
             languages: ["fr"],
-            provider: "test"
+            provider: "test",
         )
 
         #expect(await detector.statistics.totalEntries == 1)
@@ -195,7 +190,7 @@ struct CacheCLITests {
             key: "Persistent",
             sourceValue: "Persistent",
             languages: ["fr", "de", "es"],
-            provider: "test"
+            provider: "test",
         )
         try await detector1.save()
 
@@ -206,13 +201,19 @@ struct CacheCLITests {
         let stats = await detector2.statistics
         #expect(stats.totalEntries == 1)
     }
+
+    // MARK: Private
+
+    private func tempCacheFile() -> URL {
+        FileManager.default.temporaryDirectory
+            .appendingPathComponent("test-cache-\(UUID().uuidString).json")
+    }
 }
 
-// MARK: - Migration CLI Tests
+// MARK: - MigrationCLITests
 
 @Suite("Migration CLI Feature Tests")
 struct MigrationCLITests {
-
     @Test("Migrate multiple language files to xcstrings")
     func migrateMultipleLanguages() async throws {
         let enFile = StringsFile(
@@ -220,7 +221,7 @@ struct MigrationCLITests {
             entries: [
                 "welcome": StringsEntry(value: "Welcome", comment: "Main screen greeting"),
                 "logout": StringsEntry(value: "Log Out"),
-            ]
+            ],
         )
 
         let frFile = StringsFile(
@@ -228,7 +229,7 @@ struct MigrationCLITests {
             entries: [
                 "welcome": StringsEntry(value: "Bienvenue"),
                 "logout": StringsEntry(value: "Déconnexion"),
-            ]
+            ],
         )
 
         let deFile = StringsFile(
@@ -236,13 +237,13 @@ struct MigrationCLITests {
             entries: [
                 "welcome": StringsEntry(value: "Willkommen"),
                 "logout": StringsEntry(value: "Abmelden"),
-            ]
+            ],
         )
 
         let migrator = FormatMigrator()
         let xcstrings = await migrator.migrateToXCStrings(
             stringsFiles: [enFile, frFile, deFile],
-            sourceLanguage: "en"
+            sourceLanguage: "en",
         )
 
         #expect(xcstrings.strings.count == 2)
@@ -269,9 +270,9 @@ struct MigrationCLITests {
                         "en": Localization(value: "Hello"),
                         "fr": Localization(value: "Bonjour"),
                         "de": Localization(value: "Hallo"),
-                    ]
+                    ],
                 ),
-            ]
+            ],
         )
 
         let migrator = FormatMigrator()
@@ -280,7 +281,7 @@ struct MigrationCLITests {
         for lang in ["en", "fr", "de"] {
             let (stringsFile, _) = await migrator.migrateToLegacy(
                 xcstrings: xcstrings,
-                language: lang
+                language: lang,
             )
 
             #expect(stringsFile.language == lang)
@@ -297,13 +298,13 @@ struct MigrationCLITests {
                 "items_count": StringsEntry(value: "You have %lld items"),
                 "percentage": StringsEntry(value: "%.1f%% complete"),
                 "greeting": StringsEntry(value: "Hello, %@!"),
-            ]
+            ],
         )
 
         let migrator = FormatMigrator()
         let xcstrings = await migrator.migrateToXCStrings(
             stringsFiles: [enFile],
-            sourceLanguage: "en"
+            sourceLanguage: "en",
         )
 
         #expect(xcstrings.strings["items_count"]?.localizations?["en"]?.stringUnit?.value == "You have %lld items")
@@ -318,7 +319,7 @@ struct MigrationCLITests {
         let migrator = FormatMigrator()
         let xcstrings = await migrator.migrateToXCStrings(
             stringsFiles: [emptyFile],
-            sourceLanguage: "en"
+            sourceLanguage: "en",
         )
 
         #expect(xcstrings.strings.isEmpty)
@@ -326,11 +327,10 @@ struct MigrationCLITests {
     }
 }
 
-// MARK: - Preview/Backup Feature Tests
+// MARK: - TranslateFeatureTests
 
 @Suite("Translate Command Feature Tests")
 struct TranslateFeatureTests {
-
     @Test("XCStrings backup and restore")
     func backupAndRestore() async throws {
         let tempDir = FileManager.default.temporaryDirectory
@@ -346,8 +346,8 @@ struct TranslateFeatureTests {
         let original = XCStrings(
             sourceLanguage: "en",
             strings: [
-                "Hello": StringEntry(localizations: ["en": Localization(value: "Hello")])
-            ]
+                "Hello": StringEntry(localizations: ["en": Localization(value: "Hello")]),
+            ],
         )
         try original.write(to: originalURL)
 
@@ -382,27 +382,27 @@ struct TranslateFeatureTests {
                     localizations: [
                         "en": Localization(value: "Translated"),
                         "fr": Localization(value: "Traduit", state: .translated),
-                    ]
+                    ],
                 ),
                 "untranslated": StringEntry(
                     localizations: [
                         "en": Localization(value: "Untranslated"),
                         // No French translation
-                    ]
+                    ],
                 ),
                 "partial": StringEntry(
                     localizations: [
                         "en": Localization(value: "Partial"),
                         "de": Localization(value: "Teilweise"), // Has German, but no French
-                    ]
+                    ],
                 ),
                 "do_not_translate": StringEntry(
                     shouldTranslate: false,
                     localizations: [
                         "en": Localization(value: "DO NOT TRANSLATE"),
-                    ]
+                    ],
                 ),
-            ]
+            ],
         )
 
         let needsTranslationFr = xcstrings.keysNeedingTranslation(for: "fr")
@@ -420,11 +420,10 @@ struct TranslateFeatureTests {
     }
 }
 
-// MARK: - Provider Registry Tests for CLI
+// MARK: - ProviderRegistryCLITests
 
 @Suite("Provider Registry CLI Tests")
 struct ProviderRegistryCLITests {
-
     @Test("List all registered providers")
     func listAllProviders() async throws {
         let registry = ProviderRegistry()
@@ -460,18 +459,21 @@ struct ProviderRegistryCLITests {
     }
 }
 
-// MARK: - CLI Test Mock Provider
+// MARK: - CLITestMockProvider
 
 private final class CLITestMockProvider: TranslationProvider, @unchecked Sendable {
-    let identifier: String
-    let displayName: String
-    private let _isAvailable: Bool
+    // MARK: Lifecycle
 
     init(id: String, available: Bool = true) {
-        self.identifier = id
-        self.displayName = "CLI Mock \(id)"
-        self._isAvailable = available
+        identifier = id
+        displayName = "CLI Mock \(id)"
+        _isAvailable = available
     }
+
+    // MARK: Internal
+
+    let identifier: String
+    let displayName: String
 
     func isAvailable() async -> Bool {
         _isAvailable
@@ -485,8 +487,12 @@ private final class CLITestMockProvider: TranslationProvider, @unchecked Sendabl
         _ strings: [String],
         from source: LanguageCode,
         to target: LanguageCode,
-        context: TranslationContext?
+        context: TranslationContext?,
     ) async throws -> [TranslationResult] {
         strings.map { TranslationResult(original: $0, translated: "[\(target.code)] \($0)", provider: identifier) }
     }
+
+    // MARK: Private
+
+    private let _isAvailable: Bool
 }

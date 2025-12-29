@@ -4,14 +4,13 @@
 //
 
 import Foundation
-import Testing
 @testable import SwiftLocalizeCore
+import Testing
 
-// MARK: - UI Element Type Tests
+// MARK: - UIElementTypeTests
 
 @Suite("UIElementType Tests")
 struct UIElementTypeTests {
-
     @Test("All UI element types have context descriptions")
     func allTypesHaveDescriptions() {
         for type in UIElementType.allCases {
@@ -27,11 +26,10 @@ struct UIElementTypeTests {
     }
 }
 
-// MARK: - String Usage Context Tests
+// MARK: - StringUsageContextTests
 
 @Suite("StringUsageContext Tests")
 struct StringUsageContextTests {
-
     @Test("Empty context produces empty description")
     func emptyContextDescription() {
         let context = StringUsageContext(key: "test_key")
@@ -42,7 +40,7 @@ struct StringUsageContextTests {
     func contextWithElementTypes() {
         let context = StringUsageContext(
             key: "test_key",
-            elementTypes: [.button, .text]
+            elementTypes: [.button, .text],
         )
         let description = context.toContextDescription()
         #expect(description.contains("UI Element:"))
@@ -54,7 +52,7 @@ struct StringUsageContextTests {
     func contextWithModifiers() {
         let context = StringUsageContext(
             key: "test_key",
-            modifiers: [".font", ".bold"]
+            modifiers: [".font", ".bold"],
         )
         let description = context.toContextDescription()
         #expect(description.contains("Modifiers:"))
@@ -66,7 +64,7 @@ struct StringUsageContextTests {
         let snippet = "Button(\"Click me\") { action() }"
         let context = StringUsageContext(
             key: "test_key",
-            codeSnippets: [snippet]
+            codeSnippets: [snippet],
         )
         let description = context.toContextDescription()
         #expect(description.contains("Code Context:"))
@@ -78,7 +76,7 @@ struct StringUsageContextTests {
         let longSnippet = String(repeating: "x", count: 500)
         let context = StringUsageContext(
             key: "test_key",
-            codeSnippets: [longSnippet]
+            codeSnippets: [longSnippet],
         )
         let description = context.toContextDescription()
         #expect(description.contains("..."))
@@ -86,11 +84,10 @@ struct StringUsageContextTests {
     }
 }
 
-// MARK: - Translation Memory Tests
+// MARK: - TranslationMemoryTests
 
 @Suite("TranslationMemory Tests")
 struct TranslationMemoryTests {
-
     @Test("Store and retrieve exact match")
     func storeAndRetrieveExact() async {
         let tm = TranslationMemory()
@@ -99,7 +96,7 @@ struct TranslationMemoryTests {
             source: "Hello",
             translation: "Bonjour",
             language: "fr",
-            provider: "test"
+            provider: "test",
         )
 
         let result = await tm.findExact(text: "Hello", targetLanguage: "fr")
@@ -122,7 +119,7 @@ struct TranslationMemoryTests {
             source: "Hello World",
             translation: "Bonjour le Monde",
             language: "fr",
-            provider: "test"
+            provider: "test",
         )
 
         let matches = await tm.findSimilar(to: "Hello World!", targetLanguage: "fr")
@@ -139,7 +136,7 @@ struct TranslationMemoryTests {
             source: "Hello",
             translation: "Bonjour",
             language: "fr",
-            provider: "test"
+            provider: "test",
         )
 
         let matches = await tm.findSimilar(to: "Hello", targetLanguage: "fr")
@@ -155,7 +152,7 @@ struct TranslationMemoryTests {
             source: "Hello",
             translation: "Bonjour",
             language: "fr",
-            provider: "test"
+            provider: "test",
         )
 
         let matches = await tm.findSimilar(to: "Completely different text", targetLanguage: "fr")
@@ -169,7 +166,7 @@ struct TranslationMemoryTests {
         await tm.storeBatch([
             ("Hello", "Bonjour", "fr"),
             ("Goodbye", "Au revoir", "fr"),
-            ("Hello", "Hola", "es")
+            ("Hello", "Hola", "es"),
         ], provider: "test")
 
         let frHello = await tm.findExact(text: "Hello", targetLanguage: "fr")
@@ -189,7 +186,7 @@ struct TranslationMemoryTests {
             source: "Hello",
             translation: "Bonjour",
             language: "fr",
-            provider: "test"
+            provider: "test",
         )
 
         await tm.markReviewed(source: "Hello", language: "fr")
@@ -205,7 +202,7 @@ struct TranslationMemoryTests {
         await tm.storeBatch([
             ("Hello", "Bonjour", "fr"),
             ("Goodbye", "Au revoir", "fr"),
-            ("World", "Mundo", "es")
+            ("World", "Mundo", "es"),
         ], provider: "test")
 
         let frTranslations = await tm.allTranslations(for: "fr")
@@ -221,7 +218,7 @@ struct TranslationMemoryTests {
         await tm.storeBatch([
             ("Hello", "Bonjour", "fr"),
             ("Hello", "Hola", "es"),
-            ("Goodbye", "Au revoir", "fr")
+            ("Goodbye", "Au revoir", "fr"),
         ], provider: "openai")
 
         let stats = await tm.statistics
@@ -239,7 +236,7 @@ struct TranslationMemoryTests {
             source: "Hello",
             translation: "Bonjour",
             language: "fr",
-            provider: "test"
+            provider: "test",
         )
 
         await tm.remove(source: "Hello")
@@ -254,7 +251,7 @@ struct TranslationMemoryTests {
 
         await tm.storeBatch([
             ("Hello", "Bonjour", "fr"),
-            ("Goodbye", "Au revoir", "fr")
+            ("Goodbye", "Au revoir", "fr"),
         ], provider: "test")
 
         await tm.clear()
@@ -264,18 +261,17 @@ struct TranslationMemoryTests {
     }
 }
 
-// MARK: - Glossary Tests
+// MARK: - GlossaryTests
 
 @Suite("Glossary Tests")
 struct GlossaryTests {
-
     @Test("Add and retrieve term")
     func addAndRetrieveTerm() async {
         let glossary = Glossary()
 
         await glossary.addTerm(GlossaryEntry(
             term: "LotoFuel",
-            doNotTranslate: true
+            doNotTranslate: true,
         ))
 
         let term = await glossary.getTerm("LotoFuel")
@@ -299,7 +295,7 @@ struct GlossaryTests {
 
         await glossary.addTerms([
             GlossaryEntry(term: "LotoFuel", doNotTranslate: true),
-            GlossaryEntry(term: "fill-up", translations: ["fr": "plein"])
+            GlossaryEntry(term: "fill-up", translations: ["fr": "plein"]),
         ])
 
         let matches = await glossary.findTerms(in: "Record your LotoFuel fill-up today")
@@ -313,14 +309,14 @@ struct GlossaryTests {
         await glossary.addTerm(GlossaryEntry(
             term: "API",
             caseSensitive: true,
-            doNotTranslate: true
+            doNotTranslate: true,
         ))
 
         let matchesUppercase = await glossary.findTerms(in: "Use the API")
         let matchesLowercase = await glossary.findTerms(in: "Use the api")
 
         #expect(matchesUppercase.count == 1)
-        #expect(matchesLowercase.count == 0)
+        #expect(matchesLowercase.isEmpty)
     }
 
     @Test("Terms needing translation for language")
@@ -330,7 +326,7 @@ struct GlossaryTests {
         await glossary.addTerms([
             GlossaryEntry(term: "Hello", translations: ["fr": "Bonjour"]),
             GlossaryEntry(term: "Goodbye", translations: [:]),
-            GlossaryEntry(term: "Brand", doNotTranslate: true)
+            GlossaryEntry(term: "Brand", doNotTranslate: true),
         ])
 
         let needingFr = await glossary.termsNeedingTranslation(for: "fr")
@@ -347,12 +343,12 @@ struct GlossaryTests {
 
         let matches = [
             GlossaryMatch(term: "Brand", doNotTranslate: true),
-            GlossaryMatch(term: "Hello", translations: ["fr": "Bonjour"])
+            GlossaryMatch(term: "Hello", translations: ["fr": "Bonjour"]),
         ]
 
         let instructions = await glossary.toPromptInstructions(
             matches: matches,
-            targetLanguage: "fr"
+            targetLanguage: "fr",
         )
 
         #expect(instructions.contains("Terminology to use:"))
@@ -379,7 +375,7 @@ struct GlossaryTests {
         await glossary.addTerms([
             GlossaryEntry(term: "Zebra"),
             GlossaryEntry(term: "Apple"),
-            GlossaryEntry(term: "Mango")
+            GlossaryEntry(term: "Mango"),
         ])
 
         let allTerms = await glossary.allTerms
@@ -396,7 +392,7 @@ struct GlossaryTests {
         await glossary.addTerms([
             GlossaryEntry(term: "A"),
             GlossaryEntry(term: "B"),
-            GlossaryEntry(term: "C")
+            GlossaryEntry(term: "C"),
         ])
 
         let count = await glossary.count
@@ -404,11 +400,10 @@ struct GlossaryTests {
     }
 }
 
-// MARK: - Context Configuration Tests
+// MARK: - ContextConfigurationTests
 
 @Suite("ContextConfiguration Tests")
 struct ContextConfigurationTests {
-
     @Test("Build app context includes all fields")
     func buildAppContext() {
         let config = ContextConfiguration(
@@ -416,7 +411,7 @@ struct ContextConfigurationTests {
             appDescription: "A test application",
             domain: "testing",
             tone: .professional,
-            formality: .formal
+            formality: .formal,
         )
 
         let context = config.buildAppContext()
@@ -458,17 +453,16 @@ struct ContextConfigurationTests {
     }
 }
 
-// MARK: - Translation Prompt Context Tests
+// MARK: - TranslationPromptContextTests
 
 @Suite("TranslationPromptContext Tests")
 struct TranslationPromptContextTests {
-
     @Test("System prompt includes app context")
     func systemPromptIncludesAppContext() {
         let context = TranslationPromptContext(
             appContext: "App: TestApp\nDomain: testing",
             stringContexts: [],
-            targetLanguage: "fr"
+            targetLanguage: "fr",
         )
 
         let prompt = context.toSystemPrompt()
@@ -483,9 +477,9 @@ struct TranslationPromptContextTests {
             stringContexts: [],
             glossaryTerms: [
                 GlossaryMatch(term: "Brand", doNotTranslate: true),
-                GlossaryMatch(term: "Hello", translations: ["fr": "Bonjour"])
+                GlossaryMatch(term: "Hello", translations: ["fr": "Bonjour"]),
             ],
-            targetLanguage: "fr"
+            targetLanguage: "fr",
         )
 
         let prompt = context.toSystemPrompt()
@@ -501,9 +495,9 @@ struct TranslationPromptContextTests {
             appContext: "App: Test",
             stringContexts: [],
             translationMemoryMatches: [
-                TMMatch(source: "Hello", translation: "Bonjour", similarity: 1.0, humanReviewed: true)
+                TMMatch(source: "Hello", translation: "Bonjour", similarity: 1.0, humanReviewed: true),
             ],
-            targetLanguage: "fr"
+            targetLanguage: "fr",
         )
 
         let prompt = context.toSystemPrompt()
@@ -518,9 +512,9 @@ struct TranslationPromptContextTests {
         let context = TranslationPromptContext(
             appContext: "App: Test",
             stringContexts: [
-                StringContext(key: "greeting", value: "Hello", comment: "Welcome message")
+                StringContext(key: "greeting", value: "Hello", comment: "Welcome message"),
             ],
-            targetLanguage: "fr"
+            targetLanguage: "fr",
         )
 
         let prompt = context.toUserPrompt()
@@ -540,11 +534,11 @@ struct TranslationPromptContextTests {
                     value: "Submit",
                     usageContext: StringUsageContext(
                         key: "action",
-                        elementTypes: [.button]
-                    )
-                )
+                        elementTypes: [.button],
+                    ),
+                ),
             ],
-            targetLanguage: "fr"
+            targetLanguage: "fr",
         )
 
         let prompt = context.toUserPrompt()
@@ -559,9 +553,9 @@ struct TranslationPromptContextTests {
             stringContexts: [],
             glossaryTerms: [
                 GlossaryMatch(term: "Term1", translations: ["fr": "Terme1"]),
-                GlossaryMatch(term: "Term2", doNotTranslate: true)
+                GlossaryMatch(term: "Term2", doNotTranslate: true),
             ],
-            targetLanguage: "fr"
+            targetLanguage: "fr",
         )
 
         let full = context.toSystemPrompt()
@@ -576,12 +570,12 @@ struct TranslationPromptContextTests {
         let context = TranslationPromptContext(
             appContext: "App: Test",
             stringContexts: [
-                StringContext(key: "key1", value: "Value 1", comment: "Comment")
+                StringContext(key: "key1", value: "Value 1", comment: "Comment"),
             ],
             glossaryTerms: [
-                GlossaryMatch(term: "Brand", doNotTranslate: true)
+                GlossaryMatch(term: "Brand", doNotTranslate: true),
             ],
-            targetLanguage: "fr"
+            targetLanguage: "fr",
         )
 
         let json = context.toJSONRequest()
@@ -599,23 +593,22 @@ struct TranslationPromptContextTests {
     }
 }
 
-// MARK: - Context Builder Tests
+// MARK: - ContextBuilderTests
 
 @Suite("ContextBuilder Tests")
 struct ContextBuilderTests {
-
     @Test("Build simple context without analysis")
     func buildSimpleContext() async {
         let config = ContextConfiguration(
             appName: "TestApp",
-            sourceCodeAnalysisEnabled: false
+            sourceCodeAnalysisEnabled: false,
         )
 
         let builder = ContextBuilder(config: config)
 
         let context = await builder.buildSimpleContext(
             for: [("key", "value", "comment")],
-            targetLanguage: "fr"
+            targetLanguage: "fr",
         )
 
         #expect(context.stringContexts.count == 1)
@@ -632,17 +625,17 @@ struct ContextBuilderTests {
             appName: "TestApp",
             sourceCodeAnalysisEnabled: false,
             translationMemoryEnabled: false,
-            glossaryEnabled: true
+            glossaryEnabled: true,
         )
 
         let builder = ContextBuilder(
             config: config,
-            glossary: glossary
+            glossary: glossary,
         )
 
         let context = try await builder.buildContext(
             for: [("key", "Welcome to LotoFuel", nil)],
-            targetLanguage: "fr"
+            targetLanguage: "fr",
         )
 
         #expect(!context.glossaryTerms.isEmpty)
@@ -653,7 +646,7 @@ struct ContextBuilderTests {
     func buildContextSingleString() async throws {
         let config = ContextConfiguration(
             appName: "TestApp",
-            sourceCodeAnalysisEnabled: false
+            sourceCodeAnalysisEnabled: false,
         )
 
         let builder = ContextBuilder(config: config)
@@ -662,7 +655,7 @@ struct ContextBuilderTests {
             key: "greeting",
             value: "Hello",
             comment: "Welcome message",
-            targetLanguage: "de"
+            targetLanguage: "de",
         )
 
         #expect(context.stringContexts.count == 1)
@@ -672,11 +665,10 @@ struct ContextBuilderTests {
     }
 }
 
-// MARK: - TMMatch Tests
+// MARK: - TMMatchTests
 
 @Suite("TMMatch Tests")
 struct TMMatchTests {
-
     @Test("TMMatch equality")
     func tmMatchEquality() {
         let match1 = TMMatch(source: "Hello", translation: "Bonjour", similarity: 1.0)
@@ -700,11 +692,10 @@ struct TMMatchTests {
     }
 }
 
-// MARK: - GlossaryMatch Tests
+// MARK: - GlossaryMatchTests
 
 @Suite("GlossaryMatch Tests")
 struct GlossaryMatchTests {
-
     @Test("GlossaryMatch equality based on term")
     func glossaryMatchEquality() {
         let match1 = GlossaryMatch(term: "Brand", doNotTranslate: true)
@@ -729,11 +720,10 @@ struct GlossaryMatchTests {
     }
 }
 
-// MARK: - Code Occurrence Tests
+// MARK: - CodeOccurrenceTests
 
 @Suite("CodeOccurrence Tests")
 struct CodeOccurrenceTests {
-
     @Test("CodeOccurrence stores all properties")
     func codeOccurrenceProperties() {
         let occurrence = CodeOccurrence(
@@ -741,7 +731,7 @@ struct CodeOccurrenceTests {
             line: 42,
             column: 10,
             context: "Button(\"Click me\")",
-            matchedPattern: "Button("
+            matchedPattern: "Button(",
         )
 
         #expect(occurrence.file == "Sources/View.swift")

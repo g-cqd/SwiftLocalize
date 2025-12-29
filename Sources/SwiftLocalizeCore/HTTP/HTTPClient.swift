@@ -5,23 +5,18 @@
 
 import Foundation
 
-// MARK: - HTTP Client
+// MARK: - HTTPClient
 
 /// A minimal, thread-safe HTTP client using URLSession.
 public actor HTTPClient {
-    private let session: URLSession
-    private let decoder: JSONDecoder
-    private let encoder: JSONEncoder
-
-    /// Default timeout interval in seconds.
-    public static let defaultTimeout: TimeInterval = 60
+    // MARK: Lifecycle
 
     public init(
         configuration: URLSessionConfiguration = .default,
         decoder: JSONDecoder = JSONDecoder(),
-        encoder: JSONEncoder = JSONEncoder()
+        encoder: JSONEncoder = JSONEncoder(),
     ) {
-        self.session = URLSession(configuration: configuration)
+        session = URLSession(configuration: configuration)
         self.decoder = decoder
         self.encoder = encoder
     }
@@ -34,12 +29,17 @@ public actor HTTPClient {
         self.init(configuration: config)
     }
 
+    // MARK: Public
+
+    /// Default timeout interval in seconds.
+    public static let defaultTimeout: TimeInterval = 60
+
     // MARK: - GET
 
     /// Perform a GET request and decode the response.
     public func get<Response: Decodable>(
         url: String,
-        headers: [String: String] = [:]
+        headers: [String: String] = [:],
     ) async throws(HTTPError) -> Response {
         guard let requestURL = URL(string: url) else {
             throw .invalidURL(url)
@@ -55,7 +55,7 @@ public actor HTTPClient {
     /// Perform a GET request and return raw data.
     public func getData(
         url: String,
-        headers: [String: String] = [:]
+        headers: [String: String] = [:],
     ) async throws(HTTPError) -> Data {
         guard let requestURL = URL(string: url) else {
             throw .invalidURL(url)
@@ -71,10 +71,10 @@ public actor HTTPClient {
     // MARK: - POST
 
     /// Perform a POST request with a JSON body and decode the response.
-    public func post<Request: Encodable, Response: Decodable>(
+    public func post<Response: Decodable>(
         url: String,
-        body: Request,
-        headers: [String: String] = [:]
+        body: some Encodable,
+        headers: [String: String] = [:],
     ) async throws(HTTPError) -> Response {
         guard let requestURL = URL(string: url) else {
             throw .invalidURL(url)
@@ -99,7 +99,7 @@ public actor HTTPClient {
         url: String,
         data: Data,
         contentType: String = "application/json",
-        headers: [String: String] = [:]
+        headers: [String: String] = [:],
     ) async throws(HTTPError) -> Response {
         guard let requestURL = URL(string: url) else {
             throw .invalidURL(url)
@@ -114,6 +114,12 @@ public actor HTTPClient {
         return try await execute(request)
     }
 
+    // MARK: Private
+
+    private let session: URLSession
+    private let decoder: JSONDecoder
+    private let encoder: JSONEncoder
+
     // MARK: - Private Helpers
 
     private func applyHeaders(_ headers: [String: String], to request: inout URLRequest) {
@@ -123,7 +129,7 @@ public actor HTTPClient {
     }
 
     private func execute<Response: Decodable>(
-        _ request: URLRequest
+        _ request: URLRequest,
     ) async throws(HTTPError) -> Response {
         let data = try await executeRaw(request)
 
@@ -144,8 +150,11 @@ public actor HTTPClient {
             switch urlError.code {
             case .timedOut:
                 throw .timeout
-            case .notConnectedToInternet, .networkConnectionLost, .cannotConnectToHost:
+            case .cannotConnectToHost,
+                 .networkConnectionLost,
+                 .notConnectedToInternet:
                 throw .connectionFailed(urlError.localizedDescription)
+
             default:
                 throw .connectionFailed(urlError.localizedDescription)
             }
@@ -157,7 +166,7 @@ public actor HTTPClient {
             throw .invalidResponse
         }
 
-        guard (200..<300).contains(httpResponse.statusCode) else {
+        guard (200 ..< 300).contains(httpResponse.statusCode) else {
             throw .statusCode(httpResponse.statusCode, data)
         }
 
@@ -167,9 +176,9 @@ public actor HTTPClient {
 
 // MARK: - HTTPClient Extensions
 
-extension HTTPClient {
+public extension HTTPClient {
     /// Extract error message from API error response data.
-    public nonisolated func extractErrorMessage(from data: Data) -> String? {
+    nonisolated func extractErrorMessage(from data: Data) -> String? {
         // Try common error response formats
         struct GenericError: Decodable {
             let error: ErrorDetail?

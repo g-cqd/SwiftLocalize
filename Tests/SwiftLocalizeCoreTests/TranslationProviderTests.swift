@@ -4,11 +4,14 @@
 //
 
 import Foundation
-import Testing
 @testable import SwiftLocalizeCore
+import Testing
+
+// MARK: - TranslationProviderTests
 
 @Suite("Translation Provider Tests")
 struct TranslationProviderTests {
+    // MARK: Internal
 
     // MARK: - Translation Result
 
@@ -19,7 +22,7 @@ struct TranslationProviderTests {
             translated: "Bonjour",
             confidence: 0.95,
             provider: "test",
-            metadata: ["key": "value"]
+            metadata: ["key": "value"],
         )
 
         #expect(result.original == "Hello")
@@ -34,7 +37,7 @@ struct TranslationProviderTests {
         let result = TranslationResult(
             original: "Hello",
             translated: "Bonjour",
-            provider: "test"
+            provider: "test",
         )
 
         // Confidence is optional, nil means no confidence score provided
@@ -47,7 +50,7 @@ struct TranslationProviderTests {
     func languagePairInit() {
         let pair = LanguagePair(
             source: LanguageCode("en"),
-            target: LanguageCode("fr")
+            target: LanguageCode("fr"),
         )
 
         #expect(pair.source.code == "en")
@@ -66,7 +69,7 @@ struct TranslationProviderTests {
             additionalInstructions: "Keep it formal",
             glossaryTerms: nil,
             translationMemoryMatches: nil,
-            stringContexts: nil
+            stringContexts: nil,
         )
 
         #expect(context.appDescription == "A banking app")
@@ -101,12 +104,12 @@ struct TranslationProviderTests {
             additionalInstructions: nil,
             glossaryTerms: nil,
             translationMemoryMatches: nil,
-            stringContexts: nil
+            stringContexts: nil,
         )
 
         let prompt = builder.buildSystemPrompt(
             context: context,
-            targetLanguage: LanguageCode("fr")
+            targetLanguage: LanguageCode("fr"),
         )
 
         // Prompt should contain translation guidelines
@@ -122,7 +125,7 @@ struct TranslationProviderTests {
         let prompt = builder.buildUserPrompt(
             strings: strings,
             context: nil,
-            targetLanguage: LanguageCode("de")
+            targetLanguage: LanguageCode("de"),
         )
 
         #expect(prompt.contains("Hello"))
@@ -160,7 +163,7 @@ struct TranslationProviderTests {
             completed: 50,
             failed: 10,
             currentLanguage: LanguageCode("fr"),
-            currentProvider: "openai"
+            currentProvider: "openai",
         )
 
         #expect(progress.total == 100)
@@ -171,6 +174,8 @@ struct TranslationProviderTests {
         #expect(progress.currentProvider == "openai")
     }
 
+    // MARK: Private
+
     // MARK: - Helpers
 
     private func createTestConfig() -> Configuration {
@@ -179,25 +184,27 @@ struct TranslationProviderTests {
     }
 }
 
-// MARK: - Mock Provider
+// MARK: - MockProvider
 
 final class MockProvider: TranslationProvider, @unchecked Sendable {
-    let identifier: String
-    let displayName: String
-    private let available: Bool
-    private let languages: [LanguagePair]
+    // MARK: Lifecycle
 
     init(
         id: String,
         displayName: String? = nil,
         available: Bool = true,
-        languages: [LanguagePair] = []
+        languages: [LanguagePair] = [],
     ) {
-        self.identifier = id
+        identifier = id
         self.displayName = displayName ?? id.capitalized
         self.available = available
         self.languages = languages
     }
+
+    // MARK: Internal
+
+    let identifier: String
+    let displayName: String
 
     func isAvailable() async -> Bool {
         available
@@ -211,15 +218,20 @@ final class MockProvider: TranslationProvider, @unchecked Sendable {
         _ strings: [String],
         from source: LanguageCode,
         to target: LanguageCode,
-        context: TranslationContext?
+        context: TranslationContext?,
     ) async throws -> [TranslationResult] {
         strings.map { str in
             TranslationResult(
                 original: str,
                 translated: "[\(target.code)] \(str)",
                 confidence: 1.0,
-                provider: identifier
+                provider: identifier,
             )
         }
     }
+
+    // MARK: Private
+
+    private let available: Bool
+    private let languages: [LanguagePair]
 }

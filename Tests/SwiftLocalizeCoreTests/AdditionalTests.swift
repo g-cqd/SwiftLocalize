@@ -7,14 +7,13 @@
 //
 
 import Foundation
-import Testing
 @testable import SwiftLocalizeCore
+import Testing
 
-// MARK: - LanguageCode Tests
+// MARK: - LanguageCodeTests
 
 @Suite("LanguageCode Tests")
 struct LanguageCodeTests {
-
     @Test("Initialize with string literal")
     func initializeWithStringLiteral() {
         let code: LanguageCode = "en"
@@ -98,11 +97,10 @@ struct LanguageCodeTests {
     }
 }
 
-// MARK: - LanguagePair Tests
+// MARK: - LanguagePairTests
 
 @Suite("LanguagePair Tests")
 struct LanguagePairTests {
-
     @Test("LanguagePair initialization")
     func languagePairInit() {
         let pair = LanguagePair(source: .english, target: .french)
@@ -150,11 +148,10 @@ struct LanguagePairTests {
     }
 }
 
-// MARK: - LanguageDetector Tests
+// MARK: - LanguageDetectorTests
 
 @Suite("LanguageDetector Tests")
 struct LanguageDetectorTests {
-
     @Test("Detect English text")
     func detectEnglish() {
         let detector = LanguageDetector()
@@ -206,7 +203,7 @@ struct LanguageDetectorTests {
         let detector = LanguageDetector()
         let results = detector.detectLanguages(
             in: "Hello world, this is a test sentence.",
-            maxResults: 3
+            maxResults: 3,
         )
 
         #expect(!results.isEmpty)
@@ -218,7 +215,7 @@ struct LanguageDetectorTests {
         let detector = LanguageDetector()
         let isEnglish = detector.isLanguage(
             "The quick brown fox jumps over the lazy dog.",
-            expectedLanguage: .english
+            expectedLanguage: .english,
         )
 
         #expect(isEnglish)
@@ -229,7 +226,7 @@ struct LanguageDetectorTests {
         let detector = LanguageDetector()
         let isFrench = detector.isLanguage(
             "The quick brown fox jumps over the lazy dog.",
-            expectedLanguage: .french
+            expectedLanguage: .french,
         )
 
         #expect(!isFrench)
@@ -250,7 +247,7 @@ struct LanguageDetectorTests {
         let texts = [
             "Hello, how are you doing today? I hope you are having a wonderful day.",
             "Bonjour, comment allez-vous aujourd'hui? J'espère que vous passez une bonne journée.",
-            "Hola, ¿cómo estás hoy? Espero que tengas un día maravilloso."
+            "Hola, ¿cómo estás hoy? Espero que tengas un día maravilloso.",
         ]
 
         let results = detector.detectLanguages(in: texts)
@@ -269,7 +266,7 @@ struct LanguageDetectorTests {
             "The quick brown fox jumps over the lazy dog. This is a common English sentence.",
             "Good morning everyone, welcome to the meeting. Please take your seats.",
             "Bonjour à tous et bienvenue dans notre application. Nous sommes ravis de vous accueillir.",
-            "Bonsoir mes amis, comment allez-vous ce soir? J'espère que vous allez bien."
+            "Bonsoir mes amis, comment allez-vous ce soir? J'espère que vous allez bien.",
         ]
 
         let groups = detector.groupByLanguage(texts)
@@ -282,7 +279,7 @@ struct LanguageDetectorTests {
     func detectorWithConstraints() {
         let config = LanguageDetector.Configuration(
             languageConstraints: [.english, .french],
-            minimumConfidence: 0.3
+            minimumConfidence: 0.3,
         )
         let detector = LanguageDetector(configuration: config)
 
@@ -322,11 +319,10 @@ struct LanguageDetectorTests {
     }
 }
 
-// MARK: - Translation Error Tests
+// MARK: - TranslationErrorTests
 
 @Suite("TranslationError Tests")
 struct TranslationErrorTests {
-
     @Test("noProvidersAvailable error description")
     func noProvidersAvailableDescription() {
         let error = TranslationError.noProvidersAvailable
@@ -399,11 +395,10 @@ struct TranslationErrorTests {
     }
 }
 
-// MARK: - HTTP Error Tests
+// MARK: - HTTPErrorTests
 
 @Suite("HTTPError Tests")
 struct HTTPErrorTests {
-
     @Test("invalidURL error description")
     func invalidURLDescription() {
         let error = HTTPError.invalidURL("not a url")
@@ -462,11 +457,10 @@ struct HTTPErrorTests {
     }
 }
 
-// MARK: - Configuration Error Tests
+// MARK: - ConfigurationErrorTests
 
 @Suite("ConfigurationError Tests")
 struct ConfigurationErrorTests {
-
     @Test("fileNotFound error description")
     func fileNotFoundDescription() {
         let error = ConfigurationError.fileNotFound("/path/to/file")
@@ -508,11 +502,10 @@ struct ConfigurationErrorTests {
     }
 }
 
-// MARK: - XCStrings Error Tests
+// MARK: - XCStringsErrorTests
 
 @Suite("XCStringsError Tests")
 struct XCStringsErrorTests {
-
     @Test("fileNotFound error description")
     func fileNotFoundDescription() {
         let error = XCStringsError.fileNotFound("Localizable.xcstrings")
@@ -546,11 +539,10 @@ struct XCStringsErrorTests {
     }
 }
 
-// MARK: - Context Error Tests
+// MARK: - ContextErrorTests
 
 @Suite("ContextError Tests")
 struct ContextErrorTests {
-
     @Test("sourceAnalysisFailed error description")
     func sourceAnalysisFailedDescription() {
         let error = ContextError.sourceAnalysisFailed("Could not parse Swift file")
@@ -576,11 +568,10 @@ struct ContextErrorTests {
     }
 }
 
-// MARK: - Legacy Format Error Tests
+// MARK: - LegacyFormatErrorTests
 
 @Suite("LegacyFormatError Tests")
 struct LegacyFormatErrorTests {
-
     @Test("fileNotFound error description")
     func fileNotFoundDescription() {
         let error = LegacyFormatError.fileNotFound("Localizable.strings")
@@ -635,15 +626,14 @@ struct LegacyFormatErrorTests {
     func legacyFormatErrorEquality() {
         #expect(LegacyFormatError.fileNotFound("a") == LegacyFormatError.fileNotFound("a"))
         #expect(LegacyFormatError.stringsParseError(line: 1, message: "a") ==
-                LegacyFormatError.stringsParseError(line: 1, message: "a"))
+            LegacyFormatError.stringsParseError(line: 1, message: "a"))
     }
 }
 
-// MARK: - HTTPClient Tests
+// MARK: - HTTPClientTests
 
 @Suite("HTTPClient Tests")
 struct HTTPClientTests {
-
     @Test("HTTPClient initializes with default configuration")
     func initWithDefaultConfig() async {
         let client = HTTPClient()
@@ -725,7 +715,7 @@ struct HTTPClientTests {
         do {
             let _: String = try await client.post(
                 url: "",
-                body: TestBody(value: "test")
+                body: TestBody(value: "test"),
             )
             #expect(Bool(false), "Should have thrown")
         } catch let error as HTTPError {
@@ -759,11 +749,10 @@ struct HTTPClientTests {
     }
 }
 
-// MARK: - SourceCodeAnalyzer Tests
+// MARK: - SourceCodeAnalyzerTests
 
 @Suite("SourceCodeAnalyzer Tests")
 struct SourceCodeAnalyzerTests {
-
     @Test("Analyzer initializes with default context lines")
     func analyzerInit() async {
         let analyzer = SourceCodeAnalyzer()
@@ -799,11 +788,10 @@ struct SourceCodeAnalyzerTests {
     }
 }
 
-// MARK: - Translation Result Tests
+// MARK: - TranslationResultTests
 
 @Suite("TranslationResult Tests")
 struct TranslationResultTests {
-
     @Test("TranslationResult initialization with all fields")
     func translationResultFullInit() {
         let result = TranslationResult(
@@ -811,7 +799,7 @@ struct TranslationResultTests {
             translated: "Bonjour",
             confidence: 0.95,
             provider: "openai",
-            metadata: ["model": "gpt-4"]
+            metadata: ["model": "gpt-4"],
         )
 
         #expect(result.original == "Hello")
@@ -826,7 +814,7 @@ struct TranslationResultTests {
         let result = TranslationResult(
             original: "Test",
             translated: "Tester",
-            provider: "deepl"
+            provider: "deepl",
         )
 
         #expect(result.original == "Test")
@@ -847,11 +835,10 @@ struct TranslationResultTests {
     }
 }
 
-// MARK: - Translation Context Tests
+// MARK: - TranslationContextTests
 
 @Suite("TranslationContext Tests")
 struct TranslationContextTests {
-
     @Test("TranslationContext initialization with all fields")
     func translationContextFullInit() {
         let context = TranslationContext(
@@ -859,7 +846,7 @@ struct TranslationContextTests {
             domain: "testing",
             preserveFormatters: true,
             preserveMarkdown: false,
-            additionalInstructions: "Keep it simple"
+            additionalInstructions: "Keep it simple",
         )
 
         #expect(context.appDescription == "A test app")
@@ -881,11 +868,10 @@ struct TranslationContextTests {
     }
 }
 
-// MARK: - Translation Progress Tests
+// MARK: - TranslationProgressTests
 
 @Suite("TranslationProgress Tests")
 struct TranslationProgressTests {
-
     @Test("TranslationProgress percentage calculation")
     func progressPercentage() {
         let progress = TranslationProgress(total: 100, completed: 50, failed: 5)
@@ -907,7 +893,7 @@ struct TranslationProgressTests {
             completed: 25,
             failed: 2,
             currentLanguage: .french,
-            currentProvider: "openai"
+            currentProvider: "openai",
         )
 
         #expect(progress.total == 50)
@@ -918,11 +904,10 @@ struct TranslationProgressTests {
     }
 }
 
-// MARK: - GlossaryTerm Tests
+// MARK: - GlossaryTermTests
 
 @Suite("GlossaryTerm Tests")
 struct GlossaryTermTests {
-
     @Test("GlossaryTerm initialization")
     func glossaryTermInit() {
         let term = GlossaryTerm(
@@ -930,7 +915,7 @@ struct GlossaryTermTests {
             definition: "Application Programming Interface",
             doNotTranslate: false,
             translations: ["fr": "API", "de": "API"],
-            caseSensitive: true
+            caseSensitive: true,
         )
 
         #expect(term.term == "API")
@@ -945,7 +930,7 @@ struct GlossaryTermTests {
         let original = GlossaryTerm(
             term: "LotoFuel",
             definition: "Brand name",
-            doNotTranslate: true
+            doNotTranslate: true,
         )
 
         let encoder = JSONEncoder()
@@ -959,11 +944,10 @@ struct GlossaryTermTests {
     }
 }
 
-// MARK: - Tone and Formality Tests
+// MARK: - ToneAndFormalityTests
 
 @Suite("Tone and FormalityLevel Tests")
 struct ToneAndFormalityTests {
-
     @Test("Tone has all expected cases")
     func toneCases() {
         let tones: [Tone] = [.friendly, .professional, .casual, .formal, .technical]
@@ -991,17 +975,16 @@ struct ToneAndFormalityTests {
     }
 }
 
-// MARK: - TranslationMemoryMatch Tests
+// MARK: - TranslationMemoryMatchTests
 
 @Suite("TranslationMemoryMatch Tests")
 struct TranslationMemoryMatchTests {
-
     @Test("TranslationMemoryMatch initialization")
     func matchInit() {
         let match = TranslationMemoryMatch(
             source: "Hello",
             translation: "Bonjour",
-            similarity: 0.95
+            similarity: 0.95,
         )
 
         #expect(match.source == "Hello")
@@ -1020,18 +1003,17 @@ struct TranslationMemoryMatchTests {
     }
 }
 
-// MARK: - Language Report Tests
+// MARK: - LanguageReportTests
 
 @Suite("LanguageReport Tests")
 struct LanguageReportTests {
-
     @Test("LanguageReport initialization")
     func languageReportInit() {
         let report = LanguageReport(
             language: .french,
             translatedCount: 100,
             failedCount: 5,
-            provider: "openai"
+            provider: "openai",
         )
 
         #expect(report.language == .french)
@@ -1041,17 +1023,16 @@ struct LanguageReportTests {
     }
 }
 
-// MARK: - TranslationReportError Tests
+// MARK: - TranslationReportErrorTests
 
 @Suite("TranslationReportError Tests")
 struct TranslationReportErrorTests {
-
     @Test("TranslationReportError initialization")
     func reportErrorInit() {
         let error = TranslationReportError(
             key: "greeting",
             language: .german,
-            message: "Translation failed"
+            message: "Translation failed",
         )
 
         #expect(error.key == "greeting")
@@ -1060,18 +1041,17 @@ struct TranslationReportErrorTests {
     }
 }
 
-// MARK: - StringTranslationContext Tests
+// MARK: - StringTranslationContextTests
 
 @Suite("StringTranslationContext Tests")
 struct StringTranslationContextTests {
-
     @Test("StringTranslationContext initialization")
     func stringContextInit() {
         let context = StringTranslationContext(
             key: "welcome_message",
             comment: "Shown on home screen",
             uiElementTypes: [.text, .label],
-            codeSnippets: ["Text(\"welcome_message\")"]
+            codeSnippets: ["Text(\"welcome_message\")"],
         )
 
         #expect(context.key == "welcome_message")

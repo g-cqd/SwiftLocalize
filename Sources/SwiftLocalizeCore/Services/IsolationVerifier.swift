@@ -5,25 +5,29 @@
 
 import Foundation
 
-// MARK: - File Access Auditing
+// MARK: - FileOperation
 
 public struct FileOperation: Sendable {
-    public let url: URL
-    public let type: OperationType
-    public let purpose: String
-    public let timestamp: Date
-    
     public enum OperationType: String, Sendable {
         case read
         case write
     }
+
+    public let url: URL
+    public let type: OperationType
+    public let purpose: String
+    public let timestamp: Date
 }
+
+// MARK: - Violation
 
 public struct Violation: Sendable {
     public let url: URL
     public let operation: FileOperation.OperationType
     public let reason: String
 }
+
+// MARK: - FileAccessReport
 
 public struct FileAccessReport: Sendable {
     public let filesRead: [URL]
@@ -32,32 +36,35 @@ public struct FileAccessReport: Sendable {
     public let summary: String
 }
 
+// MARK: - FileAccessAuditor
+
 public actor FileAccessAuditor {
-    private var readOperations: [FileOperation] = []
-    private var writeOperations: [FileOperation] = []
-    
+    // MARK: Lifecycle
+
     public init() {}
-    
+
+    // MARK: Public
+
     /// Record a file read operation.
     public func recordRead(url: URL, purpose: String) {
         readOperations.append(FileOperation(
             url: url,
             type: .read,
             purpose: purpose,
-            timestamp: Date()
+            timestamp: Date(),
         ))
     }
-    
+
     /// Record a file write operation.
     public func recordWrite(url: URL, purpose: String) {
         writeOperations.append(FileOperation(
             url: url,
             type: .write,
             purpose: purpose,
-            timestamp: Date()
+            timestamp: Date(),
         ))
     }
-    
+
     /// Validate all write operations are within allowed scope.
     public func validateWrites(allowedPatterns: [String]) throws -> [Violation] {
         var violations: [Violation] = []
@@ -78,13 +85,34 @@ public actor FileAccessAuditor {
                 violations.append(Violation(
                     url: op.url,
                     operation: .write,
-                    reason: "Write not allowed for pattern(s): \(allowedPatterns)"
+                    reason: "Write not allowed for pattern(s): \(allowedPatterns)",
                 ))
             }
         }
 
         return violations
     }
+
+    /// Generate audit report.
+    public func generateReport() -> FileAccessReport {
+        let reads = readOperations.map(\.url)
+        let writes = writeOperations.map(\.url)
+
+        // This is a simplified check, real validation should use validateWrites
+        // But for the report we just list what happened
+
+        return FileAccessReport(
+            filesRead: reads,
+            filesWritten: writes,
+            violationsDetected: [], // Populated by explicit validation call
+            summary: "Read \(reads.count) files, wrote \(writes.count) files.",
+        )
+    }
+
+    // MARK: Private
+
+    private var readOperations: [FileOperation] = []
+    private var writeOperations: [FileOperation] = []
 
     /// Simple glob pattern matching.
     private func matchesGlobPattern(path: String, pattern: String) -> Bool {
@@ -113,35 +141,23 @@ public actor FileAccessAuditor {
         // Handle exact path or contains
         return path.contains(pattern.replacingOccurrences(of: "*", with: ""))
     }
-    
-    /// Generate audit report.
-    public func generateReport() -> FileAccessReport {
-        let reads = readOperations.map(\.url)
-        let writes = writeOperations.map(\.url)
-        
-        // This is a simplified check, real validation should use validateWrites
-        // But for the report we just list what happened
-        
-        return FileAccessReport(
-            filesRead: reads,
-            filesWritten: writes,
-            violationsDetected: [], // Populated by explicit validation call
-            summary: "Read \(reads.count) files, wrote \(writes.count) files."
-        )
-    }
 }
 
-// MARK: - Isolation Verification
+// MARK: - PlannedModification
 
 public struct PlannedModification: Sendable {
     public let url: URL
     public let reason: String
 }
 
+// MARK: - PlannedRead
+
 public struct PlannedRead: Sendable {
     public let url: URL
     public let reason: String
 }
+
+// MARK: - VerificationResult
 
 public struct VerificationResult: Sendable {
     public let isIsolated: Bool
@@ -150,21 +166,23 @@ public struct VerificationResult: Sendable {
     public let warnings: [String]
 }
 
-public actor IsolationVerifier {
+// MARK: - IsolationVerifier
 
-    private let fileManager: FileManager
+public actor IsolationVerifier {
+    // MARK: Lifecycle
 
     public init(fileManager: FileManager = .default) {
         self.fileManager = fileManager
     }
 
+    // MARK: Public
+
     /// Verify that the operation will not modify unexpected files.
     public func verify(
         configuration: Configuration,
         mode: OperationMode,
-        files: [URL]
+        files: [URL],
     ) async throws -> VerificationResult {
-
         let plannedWrites = try await listModifications(configuration: configuration, files: files)
         let plannedReads = try await listReads(configuration: configuration, mode: mode)
 
@@ -175,10 +193,13 @@ public actor IsolationVerifier {
             for modification in plannedWrites {
                 let isAllowed = isWriteAllowed(
                     url: modification.url,
-                    patterns: configuration.isolation.allowedWritePatterns
+                    patterns: configuration.isolation.allowedWritePatterns,
                 )
                 if !isAllowed {
-                    warnings.append("Unexpected write target for translation-only mode: \(modification.url.lastPathComponent)")
+                    warnings
+                        .append(
+                            "Unexpected write target for translation-only mode: \(modification.url.lastPathComponent)",
+                        )
                 }
             }
         }
@@ -189,14 +210,14 @@ public actor IsolationVerifier {
             isIsolated: isIsolated,
             plannedWrites: plannedWrites.map(\.url),
             plannedReads: plannedReads.map(\.url),
-            warnings: warnings
+            warnings: warnings,
         )
     }
 
     /// List all files that WILL be modified.
     public func listModifications(
         configuration: Configuration,
-        files: [URL]
+        files: [URL],
     ) async throws -> [PlannedModification] {
         var modifications: [PlannedModification] = []
 
@@ -205,12 +226,12 @@ public actor IsolationVerifier {
             if file.pathExtension == "xcstrings" {
                 modifications.append(PlannedModification(
                     url: file,
-                    reason: "Translation target"
+                    reason: "Translation target",
                 ))
             } else if file.pathExtension == "strings" || file.pathExtension == "stringsdict" {
                 modifications.append(PlannedModification(
                     url: file,
-                    reason: "Legacy format translation target"
+                    reason: "Legacy format translation target",
                 ))
             }
         }
@@ -220,7 +241,7 @@ public actor IsolationVerifier {
         let cacheURL = URL(fileURLWithPath: cacheFile)
         modifications.append(PlannedModification(
             url: cacheURL,
-            reason: "Translation cache"
+            reason: "Translation cache",
         ))
 
         // Translation memory file (if enabled)
@@ -229,7 +250,7 @@ public actor IsolationVerifier {
             let tmURL = URL(fileURLWithPath: tmSettings.file)
             modifications.append(PlannedModification(
                 url: tmURL,
-                reason: "Translation memory storage"
+                reason: "Translation memory storage",
             ))
         }
 
@@ -239,14 +260,14 @@ public actor IsolationVerifier {
     /// List all files that WILL be read.
     public func listReads(
         configuration: Configuration,
-        mode: OperationMode
+        mode: OperationMode,
     ) async throws -> [PlannedRead] {
         var reads: [PlannedRead] = []
 
         // Configuration file
         reads.append(PlannedRead(
             url: URL(fileURLWithPath: ".swiftlocalize.json"),
-            reason: "Configuration"
+            reason: "Configuration",
         ))
 
         // Source code files (if context extraction is enabled)
@@ -254,12 +275,12 @@ public actor IsolationVerifier {
            sourceSettings.enabled {
             let sourceFiles = try await findSourceFiles(
                 patterns: sourceSettings.paths,
-                excludes: sourceSettings.exclude
+                excludes: sourceSettings.exclude,
             )
             for file in sourceFiles {
                 reads.append(PlannedRead(
                     url: file,
-                    reason: "Context extraction (read-only)"
+                    reason: "Context extraction (read-only)",
                 ))
             }
         }
@@ -271,7 +292,7 @@ public actor IsolationVerifier {
             let glossaryURL = URL(fileURLWithPath: glossaryFile)
             reads.append(PlannedRead(
                 url: glossaryURL,
-                reason: "Glossary terms"
+                reason: "Glossary terms",
             ))
         }
 
@@ -281,12 +302,16 @@ public actor IsolationVerifier {
             let tmURL = URL(fileURLWithPath: tmSettings.file)
             reads.append(PlannedRead(
                 url: tmURL,
-                reason: "Translation memory lookup"
+                reason: "Translation memory lookup",
             ))
         }
 
         return reads
     }
+
+    // MARK: Private
+
+    private let fileManager: FileManager
 
     // MARK: - Private Helpers
 
@@ -333,7 +358,7 @@ public actor IsolationVerifier {
     /// Find source files matching patterns.
     private func findSourceFiles(
         patterns: [String],
-        excludes: [String]
+        excludes: [String],
     ) async throws -> [URL] {
         var sourceFiles: [URL] = []
         let currentDir = URL(fileURLWithPath: fileManager.currentDirectoryPath)
@@ -377,7 +402,7 @@ public actor IsolationVerifier {
         guard let enumerator = fileManager.enumerator(
             at: directory,
             includingPropertiesForKeys: [.isRegularFileKey],
-            options: [.skipsHiddenFiles]
+            options: [.skipsHiddenFiles],
         ) else {
             return results
         }

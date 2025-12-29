@@ -5,19 +5,64 @@
 
 import Foundation
 
-// MARK: - Anthropic Provider
+// MARK: - AnthropicProvider
 
 /// Translation provider using Anthropic's Messages API.
 public final class AnthropicProvider: TranslationProvider, @unchecked Sendable {
-    public let identifier = "anthropic"
-    public let displayName = "Anthropic Claude"
+    // MARK: Lifecycle
 
-    private let httpClient: HTTPClient
-    private let config: AnthropicProviderConfig
-    private let promptBuilder: TranslationPromptBuilder
+    public init(config: AnthropicProviderConfig, httpClient: HTTPClient = HTTPClient()) {
+        self.config = config
+        self.httpClient = httpClient
+        promptBuilder = TranslationPromptBuilder()
+    }
+
+    /// Convenience initializer that reads API key from environment.
+    public convenience init(
+        apiKeyEnvVar: String = "ANTHROPIC_API_KEY",
+        model: String = AnthropicProviderConfig.Model.sonnet4,
+    ) throws {
+        guard let apiKey = ProcessInfo.processInfo.environment[apiKeyEnvVar] else {
+            throw ConfigurationError.environmentVariableNotFound(apiKeyEnvVar)
+        }
+        let config = AnthropicProviderConfig(apiKey: apiKey, model: model)
+        self.init(config: config)
+    }
+
+    // MARK: Public
 
     /// Configuration for the Anthropic provider.
     public struct AnthropicProviderConfig: Sendable {
+        // MARK: Lifecycle
+
+        public init(
+            apiKey: String,
+            model: String = Model.sonnet4,
+            baseURL: String = "https://api.anthropic.com",
+            maxTokens: Int = 4096,
+            apiVersion: String = "2023-06-01",
+        ) {
+            self.apiKey = apiKey
+            self.model = model
+            self.baseURL = baseURL
+            self.maxTokens = maxTokens
+            self.apiVersion = apiVersion
+        }
+
+        // MARK: Public
+
+        /// Available Anthropic Claude models for translation.
+        public enum Model {
+            /// Claude Opus 4.5 - Most intelligent, best for complex tasks (Nov 2025)
+            public static let opus4_5 = "claude-opus-4-5-20251124"
+            /// Claude Sonnet 4.5 - Balanced performance (Sep 2025)
+            public static let sonnet4_5 = "claude-sonnet-4-5-20250929"
+            /// Claude Sonnet 4 - Previous generation, cost-effective (May 2025)
+            public static let sonnet4 = "claude-sonnet-4-20250514"
+            /// Claude Haiku 4.5 - Fast and efficient
+            public static let haiku4_5 = "claude-haiku-4-5-20251124"
+        }
+
         /// API key for authentication.
         public let apiKey: String
 
@@ -33,62 +78,21 @@ public final class AnthropicProvider: TranslationProvider, @unchecked Sendable {
         /// API version header value.
         public let apiVersion: String
 
-        /// Available Anthropic Claude models for translation.
-        public enum Model {
-            /// Claude Opus 4.5 - Most intelligent, best for complex tasks (Nov 2025)
-            public static let opus4_5 = "claude-opus-4-5-20251124"
-            /// Claude Sonnet 4.5 - Balanced performance (Sep 2025)
-            public static let sonnet4_5 = "claude-sonnet-4-5-20250929"
-            /// Claude Sonnet 4 - Previous generation, cost-effective (May 2025)
-            public static let sonnet4 = "claude-sonnet-4-20250514"
-            /// Claude Haiku 4.5 - Fast and efficient
-            public static let haiku4_5 = "claude-haiku-4-5-20251124"
-        }
-
-        public init(
-            apiKey: String,
-            model: String = Model.sonnet4,
-            baseURL: String = "https://api.anthropic.com",
-            maxTokens: Int = 4096,
-            apiVersion: String = "2023-06-01"
-        ) {
-            self.apiKey = apiKey
-            self.model = model
-            self.baseURL = baseURL
-            self.maxTokens = maxTokens
-            self.apiVersion = apiVersion
-        }
-
         /// Create config from provider configuration.
         public static func from(
             providerConfig: ProviderConfig?,
-            apiKey: String
+            apiKey: String,
         ) -> AnthropicProviderConfig {
             AnthropicProviderConfig(
                 apiKey: apiKey,
                 model: providerConfig?.model ?? Model.sonnet4,
-                baseURL: providerConfig?.baseURL ?? "https://api.anthropic.com"
+                baseURL: providerConfig?.baseURL ?? "https://api.anthropic.com",
             )
         }
     }
 
-    public init(config: AnthropicProviderConfig, httpClient: HTTPClient = HTTPClient()) {
-        self.config = config
-        self.httpClient = httpClient
-        self.promptBuilder = TranslationPromptBuilder()
-    }
-
-    /// Convenience initializer that reads API key from environment.
-    public convenience init(
-        apiKeyEnvVar: String = "ANTHROPIC_API_KEY",
-        model: String = AnthropicProviderConfig.Model.sonnet4
-    ) throws {
-        guard let apiKey = ProcessInfo.processInfo.environment[apiKeyEnvVar] else {
-            throw ConfigurationError.environmentVariableNotFound(apiKeyEnvVar)
-        }
-        let config = AnthropicProviderConfig(apiKey: apiKey, model: model)
-        self.init(config: config)
-    }
+    public let identifier = "anthropic"
+    public let displayName = "Anthropic Claude"
 
     // MARK: - TranslationProvider
 
@@ -105,18 +109,18 @@ public final class AnthropicProvider: TranslationProvider, @unchecked Sendable {
         _ strings: [String],
         from source: LanguageCode,
         to target: LanguageCode,
-        context: TranslationContext?
+        context: TranslationContext?,
     ) async throws -> [TranslationResult] {
         guard !strings.isEmpty else { return [] }
 
         let systemPrompt = promptBuilder.buildSystemPrompt(
             context: context,
-            targetLanguage: target
+            targetLanguage: target,
         )
         let userPrompt = promptBuilder.buildUserPrompt(
             strings: strings,
             context: context,
-            targetLanguage: target
+            targetLanguage: target,
         )
 
         let request = MessagesRequest(
@@ -124,8 +128,8 @@ public final class AnthropicProvider: TranslationProvider, @unchecked Sendable {
             maxTokens: config.maxTokens,
             system: systemPrompt,
             messages: [
-                .init(role: "user", content: userPrompt)
-            ]
+                .init(role: "user", content: userPrompt),
+            ],
         )
 
         let response: MessagesResponse
@@ -136,24 +140,31 @@ public final class AnthropicProvider: TranslationProvider, @unchecked Sendable {
                 headers: [
                     "x-api-key": config.apiKey,
                     "anthropic-version": config.apiVersion,
-                    "Content-Type": "application/json"
-                ]
+                    "Content-Type": "application/json",
+                ],
             )
         } catch {
             throw mapHTTPError(error)
         }
 
         guard let textBlock = response.content.first(where: { $0.type == "text" }),
-              let content = textBlock.text else {
+              let content = textBlock.text
+        else {
             throw TranslationError.invalidResponse("No text content in response")
         }
 
         return try promptBuilder.parseResponse(
             content,
             originalStrings: strings,
-            provider: identifier
+            provider: identifier,
         )
     }
+
+    // MARK: Private
+
+    private let httpClient: HTTPClient
+    private let config: AnthropicProviderConfig
+    private let promptBuilder: TranslationPromptBuilder
 
     // MARK: - Error Mapping
 
@@ -161,17 +172,23 @@ public final class AnthropicProvider: TranslationProvider, @unchecked Sendable {
         switch error {
         case .statusCode(429, _):
             return .rateLimitExceeded(provider: identifier, retryAfter: nil)
+
         case .statusCode(529, _):
             return .providerError(provider: identifier, message: "API overloaded, please retry")
+
         case let .statusCode(code, data):
             let message = extractAnthropicError(from: data) ?? "HTTP \(code)"
             return .providerError(provider: identifier, message: message)
+
         case .timeout:
             return .providerError(provider: identifier, message: "Request timed out")
+
         case let .connectionFailed(msg):
             return .providerError(provider: identifier, message: "Connection failed: \(msg)")
+
         case let .decodingFailed(msg):
             return .invalidResponse("Failed to decode response: \(msg)")
+
         default:
             return .providerError(provider: identifier, message: error.localizedDescription)
         }
@@ -195,15 +212,10 @@ public final class AnthropicProvider: TranslationProvider, @unchecked Sendable {
     }
 }
 
-// MARK: - Anthropic API Models
+// MARK: - MessagesRequest
 
 /// Request body for messages endpoint.
 private struct MessagesRequest: Encodable {
-    let model: String
-    let maxTokens: Int
-    let system: String?
-    let messages: [Message]
-
     struct Message: Encodable {
         let role: String
         let content: String
@@ -215,31 +227,30 @@ private struct MessagesRequest: Encodable {
         case system
         case messages
     }
+
+    let model: String
+    let maxTokens: Int
+    let system: String?
+    let messages: [Message]
 }
+
+// MARK: - MessagesResponse
 
 /// Response body from messages endpoint.
 private struct MessagesResponse: Decodable {
-    let id: String
-    let type: String
-    let role: String
-    let content: [ContentBlock]
-    let model: String
-    let stopReason: String?
-    let usage: Usage
-
     struct ContentBlock: Decodable {
         let type: String
         let text: String?
     }
 
     struct Usage: Decodable {
-        let inputTokens: Int
-        let outputTokens: Int
-
         enum CodingKeys: String, CodingKey {
             case inputTokens = "input_tokens"
             case outputTokens = "output_tokens"
         }
+
+        let inputTokens: Int
+        let outputTokens: Int
     }
 
     enum CodingKeys: String, CodingKey {
@@ -251,4 +262,12 @@ private struct MessagesResponse: Decodable {
         case stopReason = "stop_reason"
         case usage
     }
+
+    let id: String
+    let type: String
+    let role: String
+    let content: [ContentBlock]
+    let model: String
+    let stopReason: String?
+    let usage: Usage
 }

@@ -5,7 +5,7 @@
 
 import Foundation
 
-// MARK: - Translation Memory
+// MARK: - TranslationMemory
 
 /// Stores and retrieves previous translations for consistency.
 ///
@@ -32,30 +32,45 @@ import Foundation
 /// let matches = await tm.findSimilar(to: "Hello World", targetLanguage: "fr")
 /// ```
 public actor TranslationMemory {
-
-    /// Storage location for the translation memory.
-    private let storageURL: URL?
-
-    /// In-memory entries indexed by source text.
-    private var entries: [String: TMEntry] = [:]
-
-    /// Minimum similarity threshold for fuzzy matches.
-    private let minSimilarity: Double
-
-    /// Maximum matches to return from fuzzy search.
-    private let maxMatches: Int
-
-    /// Whether the memory has unsaved changes.
-    private var isDirty: Bool = false
+    // MARK: Lifecycle
 
     public init(
         storageURL: URL? = nil,
         minSimilarity: Double = 0.7,
-        maxMatches: Int = 5
+        maxMatches: Int = 5,
     ) {
         self.storageURL = storageURL
         self.minSimilarity = minSimilarity
         self.maxMatches = maxMatches
+    }
+
+    // MARK: Public
+
+    /// Get statistics about the translation memory.
+    public var statistics: TMStatistics {
+        let totalEntries = entries.count
+        var languageCounts: [String: Int] = [:]
+        var humanReviewedCount = 0
+        var providerCounts: [String: Int] = [:]
+
+        for (_, entry) in entries {
+            for (lang, translation) in entry.translations {
+                languageCounts[lang, default: 0] += 1
+                if translation.reviewedByHuman {
+                    humanReviewedCount += 1
+                }
+                if let provider = translation.provider {
+                    providerCounts[provider, default: 0] += 1
+                }
+            }
+        }
+
+        return TMStatistics(
+            totalEntries: totalEntries,
+            languageCounts: languageCounts,
+            humanReviewedCount: humanReviewedCount,
+            providerCounts: providerCounts,
+        )
     }
 
     // MARK: - Storage
@@ -103,10 +118,11 @@ public actor TranslationMemory {
     /// - Returns: The translation if found, nil otherwise.
     public func findExact(
         text: String,
-        targetLanguage: String
+        targetLanguage: String,
     ) -> String? {
         guard let entry = entries[text],
-              let translation = entry.translations[targetLanguage] else {
+              let translation = entry.translations[targetLanguage]
+        else {
             return nil
         }
         return translation.value
@@ -124,7 +140,7 @@ public actor TranslationMemory {
     public func findSimilar(
         to text: String,
         targetLanguage: String,
-        limit: Int? = nil
+        limit: Int? = nil,
     ) -> [TMMatch] {
         let effectiveLimit = limit ?? maxMatches
 
@@ -136,7 +152,7 @@ public actor TranslationMemory {
                 translation: translation.value,
                 similarity: 1.0,
                 provider: translation.provider,
-                humanReviewed: translation.reviewedByHuman
+                humanReviewed: translation.reviewedByHuman,
             )]
         }
 
@@ -156,7 +172,7 @@ public actor TranslationMemory {
                 translation: translation.value,
                 similarity: similarity,
                 provider: translation.provider,
-                humanReviewed: translation.reviewedByHuman
+                humanReviewed: translation.reviewedByHuman,
             ))
         }
 
@@ -182,33 +198,6 @@ public actor TranslationMemory {
         return result
     }
 
-    /// Get statistics about the translation memory.
-    public var statistics: TMStatistics {
-        let totalEntries = entries.count
-        var languageCounts: [String: Int] = [:]
-        var humanReviewedCount = 0
-        var providerCounts: [String: Int] = [:]
-
-        for (_, entry) in entries {
-            for (lang, translation) in entry.translations {
-                languageCounts[lang, default: 0] += 1
-                if translation.reviewedByHuman {
-                    humanReviewedCount += 1
-                }
-                if let provider = translation.provider {
-                    providerCounts[provider, default: 0] += 1
-                }
-            }
-        }
-
-        return TMStatistics(
-            totalEntries: totalEntries,
-            languageCounts: languageCounts,
-            humanReviewedCount: humanReviewedCount,
-            providerCounts: providerCounts
-        )
-    }
-
     // MARK: - Storage
 
     /// Store a new translation.
@@ -226,25 +215,25 @@ public actor TranslationMemory {
         language: String,
         provider: String,
         context: String? = nil,
-        humanReviewed: Bool = false
+        humanReviewed: Bool = false,
     ) {
         var entry = entries[source] ?? TMEntry(
             sourceText: source,
             translations: [:],
             context: context,
             lastUsed: Date(),
-            quality: .machineTranslated
+            quality: .machineTranslated,
         )
 
         entry.translations[language] = TranslatedText(
             value: translation,
             provider: provider,
             reviewedByHuman: humanReviewed,
-            confidence: humanReviewed ? 1.0 : 0.9
+            confidence: humanReviewed ? 1.0 : 0.9,
         )
         entry.lastUsed = Date()
 
-        if humanReviewed && entry.quality == .machineTranslated {
+        if humanReviewed, entry.quality == .machineTranslated {
             entry.quality = .humanReviewed
         }
 
@@ -255,14 +244,14 @@ public actor TranslationMemory {
     /// Store multiple translations in batch.
     public func storeBatch(
         _ translations: [(source: String, translation: String, language: String)],
-        provider: String
+        provider: String,
     ) {
         for item in translations {
             store(
                 source: item.source,
                 translation: item.translation,
                 language: item.language,
-                provider: provider
+                provider: provider,
             )
         }
     }
@@ -270,7 +259,8 @@ public actor TranslationMemory {
     /// Mark a translation as human-reviewed.
     public func markReviewed(source: String, language: String) {
         guard var entry = entries[source],
-              var translation = entry.translations[language] else {
+              var translation = entry.translations[language]
+        else {
             return
         }
 
@@ -294,13 +284,30 @@ public actor TranslationMemory {
         isDirty = true
     }
 
+    // MARK: Private
+
+    /// Storage location for the translation memory.
+    private let storageURL: URL?
+
+    /// In-memory entries indexed by source text.
+    private var entries: [String: TMEntry] = [:]
+
+    /// Minimum similarity threshold for fuzzy matches.
+    private let minSimilarity: Double
+
+    /// Maximum matches to return from fuzzy search.
+    private let maxMatches: Int
+
+    /// Whether the memory has unsaved changes.
+    private var isDirty: Bool = false
+
     // MARK: - Similarity Calculation
 
     /// Calculate similarity between two strings using Levenshtein distance.
     ///
     /// Returns a value between 0.0 (completely different) and 1.0 (identical).
     private func calculateSimilarity(_ s1: String, _ s2: String) -> Double {
-        guard !s1.isEmpty && !s2.isEmpty else {
+        guard !s1.isEmpty, !s2.isEmpty else {
             return s1 == s2 ? 1.0 : 0.0
         }
 
@@ -323,18 +330,18 @@ public actor TranslationMemory {
         if n == 0 { return m }
 
         // Use two rows instead of full matrix for memory efficiency
-        var previousRow = Array(0...n)
+        var previousRow = Array(0 ... n)
         var currentRow = [Int](repeating: 0, count: n + 1)
 
-        for i in 1...m {
+        for i in 1 ... m {
             currentRow[0] = i
 
-            for j in 1...n {
+            for j in 1 ... n {
                 let cost = s1[i - 1] == s2[j - 1] ? 0 : 1
                 currentRow[j] = min(
-                    previousRow[j] + 1,      // deletion
-                    currentRow[j - 1] + 1,   // insertion
-                    previousRow[j - 1] + cost // substitution
+                    previousRow[j] + 1, // deletion
+                    currentRow[j - 1] + 1, // insertion
+                    previousRow[j - 1] + cost, // substitution
                 )
             }
 
@@ -345,7 +352,7 @@ public actor TranslationMemory {
     }
 }
 
-// MARK: - Storage Models
+// MARK: - TMStorage
 
 /// Root storage structure for translation memory.
 struct TMStorage: Codable {
@@ -353,8 +360,28 @@ struct TMStorage: Codable {
     var entries: [String: TMEntry]
 }
 
+// MARK: - TMEntry
+
 /// A single entry in the translation memory.
 public struct TMEntry: Codable, Sendable {
+    // MARK: Lifecycle
+
+    public init(
+        sourceText: String,
+        translations: [String: TranslatedText],
+        context: String?,
+        lastUsed: Date,
+        quality: TranslationQuality,
+    ) {
+        self.sourceText = sourceText
+        self.translations = translations
+        self.context = context
+        self.lastUsed = lastUsed
+        self.quality = quality
+    }
+
+    // MARK: Public
+
     /// The source text.
     public var sourceText: String
 
@@ -369,24 +396,28 @@ public struct TMEntry: Codable, Sendable {
 
     /// Quality level of the entry.
     public var quality: TranslationQuality
-
-    public init(
-        sourceText: String,
-        translations: [String: TranslatedText],
-        context: String?,
-        lastUsed: Date,
-        quality: TranslationQuality
-    ) {
-        self.sourceText = sourceText
-        self.translations = translations
-        self.context = context
-        self.lastUsed = lastUsed
-        self.quality = quality
-    }
 }
+
+// MARK: - TranslatedText
 
 /// A translated text with metadata.
 public struct TranslatedText: Codable, Sendable {
+    // MARK: Lifecycle
+
+    public init(
+        value: String,
+        provider: String?,
+        reviewedByHuman: Bool,
+        confidence: Double,
+    ) {
+        self.value = value
+        self.provider = provider
+        self.reviewedByHuman = reviewedByHuman
+        self.confidence = confidence
+    }
+
+    // MARK: Public
+
     /// The translated value.
     public var value: String
 
@@ -398,21 +429,9 @@ public struct TranslatedText: Codable, Sendable {
 
     /// Confidence score (0.0 to 1.0).
     public var confidence: Double
-
-    public init(
-        value: String,
-        provider: String?,
-        reviewedByHuman: Bool,
-        confidence: Double
-    ) {
-        self.value = value
-        self.provider = provider
-        self.reviewedByHuman = reviewedByHuman
-        self.confidence = confidence
-    }
 }
 
-// MARK: - Statistics
+// MARK: - TMStatistics
 
 /// Statistics about the translation memory.
 public struct TMStatistics: Sendable {

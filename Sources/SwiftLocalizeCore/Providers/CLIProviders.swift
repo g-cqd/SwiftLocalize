@@ -6,26 +6,30 @@
 
 import Foundation
 
-// MARK: - CLI Provider Base
+// MARK: - CLIProviderBase
 
 /// Base class for CLI-based translation providers.
 ///
 /// CLI providers execute translation prompts through locally installed command-line tools
 /// like Gemini CLI, GitHub Copilot CLI, or OpenAI Codex CLI.
 public class CLIProviderBase: @unchecked Sendable {
-    let promptBuilder: TranslationPromptBuilder
-    let timeout: TimeInterval
+    // MARK: Lifecycle
 
     init(timeout: TimeInterval = 120) {
-        self.promptBuilder = TranslationPromptBuilder()
+        promptBuilder = TranslationPromptBuilder()
         self.timeout = timeout
     }
+
+    // MARK: Internal
+
+    let promptBuilder: TranslationPromptBuilder
+    let timeout: TimeInterval
 
     /// Execute a CLI command and return the output.
     func executeCommand(
         _ command: String,
         arguments: [String],
-        input: String? = nil
+        input: String? = nil,
     ) async throws -> String {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: command)
@@ -50,7 +54,7 @@ public class CLIProviderBase: @unchecked Sendable {
 
             // Wait for completion with timeout
             let deadline = Date().addingTimeInterval(timeout)
-            while process.isRunning && Date() < deadline {
+            while process.isRunning, Date() < deadline {
                 try await Task.sleep(nanoseconds: 100_000_000) // 100ms
             }
 
@@ -58,7 +62,7 @@ public class CLIProviderBase: @unchecked Sendable {
                 process.terminate()
                 throw TranslationError.providerError(
                     provider: "cli",
-                    message: "CLI command timed out after \(Int(timeout)) seconds"
+                    message: "CLI command timed out after \(Int(timeout)) seconds",
                 )
             }
 
@@ -69,7 +73,7 @@ public class CLIProviderBase: @unchecked Sendable {
                 let errorMessage = String(data: errorData, encoding: .utf8) ?? "Unknown error"
                 throw TranslationError.providerError(
                     provider: "cli",
-                    message: "CLI command failed: \(errorMessage)"
+                    message: "CLI command failed: \(errorMessage)",
                 )
             }
 
@@ -78,13 +82,12 @@ public class CLIProviderBase: @unchecked Sendable {
             }
 
             return output
-
         } catch let error as TranslationError {
             throw error
         } catch {
             throw TranslationError.providerError(
                 provider: "cli",
-                message: "Failed to execute CLI: \(error.localizedDescription)"
+                message: "Failed to execute CLI: \(error.localizedDescription)",
             )
         }
     }
@@ -137,7 +140,7 @@ public class CLIProviderBase: @unchecked Sendable {
     }
 }
 
-// MARK: - Gemini CLI Provider
+// MARK: - GeminiCLIProvider
 
 /// Translation provider using Google Gemini CLI.
 ///
@@ -156,41 +159,46 @@ public class CLIProviderBase: @unchecked Sendable {
 /// }
 /// ```
 public final class GeminiCLIProvider: CLIProviderBase, TranslationProvider, @unchecked Sendable {
-    public let identifier = "gemini-cli"
-    public let displayName = "Gemini CLI"
+    // MARK: Lifecycle
 
-    private let config: GeminiCLIConfig
-    private var binaryPath: String?
+    public init(config: GeminiCLIConfig = .init()) {
+        self.config = config
+        super.init()
+        binaryPath = findBinary(name: "gemini", customPath: config.binaryPath)
+    }
+
+    // MARK: Public
 
     /// Configuration for the Gemini CLI provider.
     public struct GeminiCLIConfig: Sendable {
+        // MARK: Lifecycle
+
+        public init(
+            binaryPath: String? = nil,
+            model: String = "gemini-2.0-flash",
+        ) {
+            self.binaryPath = binaryPath
+            self.model = model
+        }
+
+        // MARK: Public
+
         /// Path to the gemini binary.
         public let binaryPath: String?
 
         /// Model to use for translation.
         public let model: String
 
-        public init(
-            binaryPath: String? = nil,
-            model: String = "gemini-2.0-flash"
-        ) {
-            self.binaryPath = binaryPath
-            self.model = model
-        }
-
         public static func from(providerConfig: ProviderConfig?) -> GeminiCLIConfig {
             GeminiCLIConfig(
                 binaryPath: providerConfig?.cliPath,
-                model: providerConfig?.model ?? "gemini-2.0-flash"
+                model: providerConfig?.model ?? "gemini-2.0-flash",
             )
         }
     }
 
-    public init(config: GeminiCLIConfig = .init()) {
-        self.config = config
-        super.init()
-        self.binaryPath = findBinary(name: "gemini", customPath: config.binaryPath)
-    }
+    public let identifier = "gemini-cli"
+    public let displayName = "Gemini CLI"
 
     public func isAvailable() async -> Bool {
         binaryPath != nil
@@ -204,12 +212,12 @@ public final class GeminiCLIProvider: CLIProviderBase, TranslationProvider, @unc
         _ strings: [String],
         from source: LanguageCode,
         to target: LanguageCode,
-        context: TranslationContext?
+        context: TranslationContext?,
     ) async throws -> [TranslationResult] {
         guard let binary = binaryPath else {
             throw TranslationError.providerError(
                 provider: identifier,
-                message: "Gemini CLI not found. Install with: npm install -g @google/gemini-cli"
+                message: "Gemini CLI not found. Install with: npm install -g @google/gemini-cli",
             )
         }
 
@@ -223,14 +231,19 @@ public final class GeminiCLIProvider: CLIProviderBase, TranslationProvider, @unc
             arguments: [
                 "--model", config.model,
                 "-p", fullPrompt,
-            ]
+            ],
         )
 
         return try promptBuilder.parseResponse(output, originalStrings: strings, provider: identifier)
     }
+
+    // MARK: Private
+
+    private let config: GeminiCLIConfig
+    private var binaryPath: String?
 }
 
-// MARK: - GitHub Copilot CLI Provider
+// MARK: - CopilotCLIProvider
 
 /// Translation provider using GitHub Copilot CLI.
 ///
@@ -248,31 +261,36 @@ public final class GeminiCLIProvider: CLIProviderBase, TranslationProvider, @unc
 /// }
 /// ```
 public final class CopilotCLIProvider: CLIProviderBase, TranslationProvider, @unchecked Sendable {
-    public let identifier = "copilot-cli"
-    public let displayName = "GitHub Copilot CLI"
+    // MARK: Lifecycle
 
-    private let config: CopilotCLIConfig
-    private var binaryPath: String?
+    public init(config: CopilotCLIConfig = .init()) {
+        self.config = config
+        super.init()
+        binaryPath = findBinary(name: "copilot", customPath: config.binaryPath)
+    }
+
+    // MARK: Public
 
     /// Configuration for the Copilot CLI provider.
     public struct CopilotCLIConfig: Sendable {
-        /// Path to the copilot binary.
-        public let binaryPath: String?
+        // MARK: Lifecycle
 
         public init(binaryPath: String? = nil) {
             self.binaryPath = binaryPath
         }
+
+        // MARK: Public
+
+        /// Path to the copilot binary.
+        public let binaryPath: String?
 
         public static func from(providerConfig: ProviderConfig?) -> CopilotCLIConfig {
             CopilotCLIConfig(binaryPath: providerConfig?.cliPath)
         }
     }
 
-    public init(config: CopilotCLIConfig = .init()) {
-        self.config = config
-        super.init()
-        self.binaryPath = findBinary(name: "copilot", customPath: config.binaryPath)
-    }
+    public let identifier = "copilot-cli"
+    public let displayName = "GitHub Copilot CLI"
 
     public func isAvailable() async -> Bool {
         binaryPath != nil
@@ -286,12 +304,12 @@ public final class CopilotCLIProvider: CLIProviderBase, TranslationProvider, @un
         _ strings: [String],
         from source: LanguageCode,
         to target: LanguageCode,
-        context: TranslationContext?
+        context: TranslationContext?,
     ) async throws -> [TranslationResult] {
         guard let binary = binaryPath else {
             throw TranslationError.providerError(
                 provider: identifier,
-                message: "GitHub Copilot CLI not found. Install with: npm install -g @github/copilot-cli"
+                message: "GitHub Copilot CLI not found. Install with: npm install -g @github/copilot-cli",
             )
         }
 
@@ -302,14 +320,19 @@ public final class CopilotCLIProvider: CLIProviderBase, TranslationProvider, @un
         // Execute copilot CLI in programmatic mode
         let output = try await executeCommand(
             binary,
-            arguments: ["-p", fullPrompt]
+            arguments: ["-p", fullPrompt],
         )
 
         return try promptBuilder.parseResponse(output, originalStrings: strings, provider: identifier)
     }
+
+    // MARK: Private
+
+    private let config: CopilotCLIConfig
+    private var binaryPath: String?
 }
 
-// MARK: - OpenAI Codex CLI Provider
+// MARK: - CodexCLIProvider
 
 /// Translation provider using OpenAI Codex CLI.
 ///
@@ -328,19 +351,29 @@ public final class CopilotCLIProvider: CLIProviderBase, TranslationProvider, @un
 /// }
 /// ```
 public final class CodexCLIProvider: CLIProviderBase, TranslationProvider, @unchecked Sendable {
-    public let identifier = "codex-cli"
-    public let displayName = "OpenAI Codex CLI"
+    // MARK: Lifecycle
 
-    private let config: CodexCLIConfig
-    private var binaryPath: String?
+    public init(config: CodexCLIConfig = .init()) {
+        self.config = config
+        super.init()
+        binaryPath = findBinary(name: "codex", customPath: config.binaryPath)
+    }
+
+    // MARK: Public
 
     /// Configuration for the Codex CLI provider.
     public struct CodexCLIConfig: Sendable {
-        /// Path to the codex binary.
-        public let binaryPath: String?
+        // MARK: Lifecycle
 
-        /// Approval mode for codex commands.
-        public let approvalMode: ApprovalMode
+        public init(
+            binaryPath: String? = nil,
+            approvalMode: ApprovalMode = .auto,
+        ) {
+            self.binaryPath = binaryPath
+            self.approvalMode = approvalMode
+        }
+
+        // MARK: Public
 
         public enum ApprovalMode: String, Sendable {
             case auto = "auto-edit"
@@ -348,24 +381,19 @@ public final class CodexCLIProvider: CLIProviderBase, TranslationProvider, @unch
             case full = "full-auto"
         }
 
-        public init(
-            binaryPath: String? = nil,
-            approvalMode: ApprovalMode = .auto
-        ) {
-            self.binaryPath = binaryPath
-            self.approvalMode = approvalMode
-        }
+        /// Path to the codex binary.
+        public let binaryPath: String?
+
+        /// Approval mode for codex commands.
+        public let approvalMode: ApprovalMode
 
         public static func from(providerConfig: ProviderConfig?) -> CodexCLIConfig {
             CodexCLIConfig(binaryPath: providerConfig?.cliPath)
         }
     }
 
-    public init(config: CodexCLIConfig = .init()) {
-        self.config = config
-        super.init()
-        self.binaryPath = findBinary(name: "codex", customPath: config.binaryPath)
-    }
+    public let identifier = "codex-cli"
+    public let displayName = "OpenAI Codex CLI"
 
     public func isAvailable() async -> Bool {
         binaryPath != nil
@@ -379,12 +407,12 @@ public final class CodexCLIProvider: CLIProviderBase, TranslationProvider, @unch
         _ strings: [String],
         from source: LanguageCode,
         to target: LanguageCode,
-        context: TranslationContext?
+        context: TranslationContext?,
     ) async throws -> [TranslationResult] {
         guard let binary = binaryPath else {
             throw TranslationError.providerError(
                 provider: identifier,
-                message: "OpenAI Codex CLI not found. Install with: npm i -g @openai/codex"
+                message: "OpenAI Codex CLI not found. Install with: npm i -g @openai/codex",
             )
         }
 
@@ -400,14 +428,19 @@ public final class CodexCLIProvider: CLIProviderBase, TranslationProvider, @unch
                 "--quiet",
                 "--approval-mode", config.approvalMode.rawValue,
                 fullPrompt,
-            ]
+            ],
         )
 
         return try promptBuilder.parseResponse(output, originalStrings: strings, provider: identifier)
     }
+
+    // MARK: Private
+
+    private let config: CodexCLIConfig
+    private var binaryPath: String?
 }
 
-// MARK: - Generic CLI Provider
+// MARK: - GenericCLIProvider
 
 /// A generic CLI provider that can wrap any LLM CLI tool.
 ///
@@ -426,14 +459,40 @@ public final class CodexCLIProvider: CLIProviderBase, TranslationProvider, @unch
 /// }
 /// ```
 public final class GenericCLIProvider: CLIProviderBase, TranslationProvider, @unchecked Sendable {
-    public let identifier: String
-    public let displayName: String
+    // MARK: Lifecycle
 
-    private let config: GenericCLIConfig
-    private var binaryPath: String?
+    public init(config: GenericCLIConfig) {
+        self.config = config
+        identifier = config.identifier
+        displayName = config.displayName
+        super.init()
+        binaryPath = findBinary(name: config.binaryPath, customPath: config.binaryPath)
+    }
+
+    // MARK: Public
 
     /// Configuration for a generic CLI provider.
     public struct GenericCLIConfig: Sendable {
+        // MARK: Lifecycle
+
+        public init(
+            identifier: String,
+            displayName: String,
+            binaryPath: String,
+            prePromptArgs: [String] = [],
+            postPromptArgs: [String] = [],
+            useStdin: Bool = false,
+        ) {
+            self.identifier = identifier
+            self.displayName = displayName
+            self.binaryPath = binaryPath
+            self.prePromptArgs = prePromptArgs
+            self.postPromptArgs = postPromptArgs
+            self.useStdin = useStdin
+        }
+
+        // MARK: Public
+
         /// Unique identifier for this provider.
         public let identifier: String
 
@@ -451,31 +510,10 @@ public final class GenericCLIProvider: CLIProviderBase, TranslationProvider, @un
 
         /// Whether to pass the prompt as stdin instead of argument.
         public let useStdin: Bool
-
-        public init(
-            identifier: String,
-            displayName: String,
-            binaryPath: String,
-            prePromptArgs: [String] = [],
-            postPromptArgs: [String] = [],
-            useStdin: Bool = false
-        ) {
-            self.identifier = identifier
-            self.displayName = displayName
-            self.binaryPath = binaryPath
-            self.prePromptArgs = prePromptArgs
-            self.postPromptArgs = postPromptArgs
-            self.useStdin = useStdin
-        }
     }
 
-    public init(config: GenericCLIConfig) {
-        self.config = config
-        self.identifier = config.identifier
-        self.displayName = config.displayName
-        super.init()
-        self.binaryPath = findBinary(name: config.binaryPath, customPath: config.binaryPath)
-    }
+    public let identifier: String
+    public let displayName: String
 
     public func isAvailable() async -> Bool {
         binaryPath != nil
@@ -489,12 +527,12 @@ public final class GenericCLIProvider: CLIProviderBase, TranslationProvider, @un
         _ strings: [String],
         from source: LanguageCode,
         to target: LanguageCode,
-        context: TranslationContext?
+        context: TranslationContext?,
     ) async throws -> [TranslationResult] {
         guard let binary = binaryPath else {
             throw TranslationError.providerError(
                 provider: identifier,
-                message: "CLI binary not found at: \(config.binaryPath)"
+                message: "CLI binary not found at: \(config.binaryPath)",
             )
         }
 
@@ -511,9 +549,14 @@ public final class GenericCLIProvider: CLIProviderBase, TranslationProvider, @un
         let output = try await executeCommand(
             binary,
             arguments: args,
-            input: config.useStdin ? fullPrompt : nil
+            input: config.useStdin ? fullPrompt : nil,
         )
 
         return try promptBuilder.parseResponse(output, originalStrings: strings, provider: identifier)
     }
+
+    // MARK: Private
+
+    private let config: GenericCLIConfig
+    private var binaryPath: String?
 }

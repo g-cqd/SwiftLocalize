@@ -5,25 +5,29 @@
 
 import Foundation
 
-// MARK: - Language Code
+// MARK: - LanguageCode
 
 /// Represents a BCP 47 language code.
 public struct LanguageCode: Hashable, Sendable, Codable, ExpressibleByStringLiteral {
-    /// The raw language code string (e.g., "en", "zh-Hans", "pt-BR").
-    public let code: String
+    // MARK: Lifecycle
 
     public init(_ code: String) {
         self.code = code
     }
 
     public init(stringLiteral value: String) {
-        self.code = value
+        code = value
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        self.code = try container.decode(String.self)
+        code = try container.decode(String.self)
     }
+
+    // MARK: Public
+
+    /// The raw language code string (e.g., "en", "zh-Hans", "pt-BR").
+    public let code: String
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
@@ -33,74 +37,80 @@ public struct LanguageCode: Hashable, Sendable, Codable, ExpressibleByStringLite
 
 // MARK: - Common Languages
 
-extension LanguageCode {
-    public static let english: LanguageCode = "en"
-    public static let spanish: LanguageCode = "es"
-    public static let french: LanguageCode = "fr"
-    public static let german: LanguageCode = "de"
-    public static let italian: LanguageCode = "it"
-    public static let portuguese: LanguageCode = "pt"
-    public static let portugueseBrazil: LanguageCode = "pt-BR"
-    public static let russian: LanguageCode = "ru"
-    public static let japanese: LanguageCode = "ja"
-    public static let korean: LanguageCode = "ko"
-    public static let chineseSimplified: LanguageCode = "zh-Hans"
-    public static let chineseTraditional: LanguageCode = "zh-Hant"
-    public static let arabic: LanguageCode = "ar"
-    public static let hindi: LanguageCode = "hi"
-    public static let dutch: LanguageCode = "nl"
-    public static let polish: LanguageCode = "pl"
-    public static let turkish: LanguageCode = "tr"
-    public static let ukrainian: LanguageCode = "uk"
-    public static let vietnamese: LanguageCode = "vi"
-    public static let thai: LanguageCode = "th"
-    public static let swedish: LanguageCode = "sv"
-    public static let danish: LanguageCode = "da"
-    public static let finnish: LanguageCode = "fi"
-    public static let norwegian: LanguageCode = "nb"
-    public static let czech: LanguageCode = "cs"
-    public static let greek: LanguageCode = "el"
-    public static let hebrew: LanguageCode = "he"
-    public static let indonesian: LanguageCode = "id"
-    public static let malay: LanguageCode = "ms"
-    public static let romanian: LanguageCode = "ro"
-    public static let hungarian: LanguageCode = "hu"
-    public static let catalan: LanguageCode = "ca"
+public extension LanguageCode {
+    static let english: LanguageCode = "en"
+    static let spanish: LanguageCode = "es"
+    static let french: LanguageCode = "fr"
+    static let german: LanguageCode = "de"
+    static let italian: LanguageCode = "it"
+    static let portuguese: LanguageCode = "pt"
+    static let portugueseBrazil: LanguageCode = "pt-BR"
+    static let russian: LanguageCode = "ru"
+    static let japanese: LanguageCode = "ja"
+    static let korean: LanguageCode = "ko"
+    static let chineseSimplified: LanguageCode = "zh-Hans"
+    static let chineseTraditional: LanguageCode = "zh-Hant"
+    static let arabic: LanguageCode = "ar"
+    static let hindi: LanguageCode = "hi"
+    static let dutch: LanguageCode = "nl"
+    static let polish: LanguageCode = "pl"
+    static let turkish: LanguageCode = "tr"
+    static let ukrainian: LanguageCode = "uk"
+    static let vietnamese: LanguageCode = "vi"
+    static let thai: LanguageCode = "th"
+    static let swedish: LanguageCode = "sv"
+    static let danish: LanguageCode = "da"
+    static let finnish: LanguageCode = "fi"
+    static let norwegian: LanguageCode = "nb"
+    static let czech: LanguageCode = "cs"
+    static let greek: LanguageCode = "el"
+    static let hebrew: LanguageCode = "he"
+    static let indonesian: LanguageCode = "id"
+    static let malay: LanguageCode = "ms"
+    static let romanian: LanguageCode = "ro"
+    static let hungarian: LanguageCode = "hu"
+    static let catalan: LanguageCode = "ca"
 }
 
-// MARK: - Language Pair
+// MARK: - LanguagePair
 
 /// A source-target language pair for translation.
 public struct LanguagePair: Hashable, Sendable, Codable {
-    public let source: LanguageCode
-    public let target: LanguageCode
+    // MARK: Lifecycle
 
     public init(source: LanguageCode, target: LanguageCode) {
         self.source = source
         self.target = target
     }
+
+    // MARK: Public
+
+    public let source: LanguageCode
+    public let target: LanguageCode
 }
 
 // MARK: - Display Name
 
-extension LanguageCode {
+public extension LanguageCode {
     /// Returns the display name for this language code in the specified locale.
-    public func displayName(in locale: Locale = .current) -> String {
+    func displayName(in locale: Locale = .current) -> String {
         locale.localizedString(forIdentifier: code) ?? code
     }
 
     /// Returns the native display name for this language.
-    public var nativeDisplayName: String {
+    var nativeDisplayName: String {
         let locale = Locale(identifier: code)
         return locale.localizedString(forIdentifier: code) ?? code
     }
 }
 
-// MARK: - CustomStringConvertible
+// MARK: - LanguageCode + CustomStringConvertible
 
 extension LanguageCode: CustomStringConvertible {
     public var description: String { code }
 }
+
+// MARK: - LanguagePair + CustomStringConvertible
 
 extension LanguagePair: CustomStringConvertible {
     public var description: String { "\(source.code) → \(target.code)" }

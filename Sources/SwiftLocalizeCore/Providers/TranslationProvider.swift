@@ -5,7 +5,7 @@
 
 import Foundation
 
-// MARK: - Translation Provider Protocol
+// MARK: - TranslationProvider
 
 /// Protocol for translation providers.
 ///
@@ -44,24 +44,24 @@ public protocol TranslationProvider: Sendable {
         _ strings: [String],
         from source: LanguageCode,
         to target: LanguageCode,
-        context: TranslationContext?
+        context: TranslationContext?,
     ) async throws -> [TranslationResult]
 }
 
 // MARK: - Default Implementations
 
-extension TranslationProvider {
+public extension TranslationProvider {
     /// Default implementation returns all pairs as supported.
-    public func supportedLanguages() async throws -> [LanguagePair] {
+    func supportedLanguages() async throws -> [LanguagePair] {
         []
     }
 
     /// Translate a single string.
-    public func translate(
+    func translate(
         _ string: String,
         from source: LanguageCode,
         to target: LanguageCode,
-        context: TranslationContext? = nil
+        context: TranslationContext? = nil,
     ) async throws -> TranslationResult {
         let results = try await translate([string], from: source, to: target, context: context)
         guard let result = results.first else {
@@ -71,7 +71,7 @@ extension TranslationProvider {
     }
 
     /// Check if a language pair is supported.
-    public func supports(source: LanguageCode, target: LanguageCode) async throws -> Bool {
+    func supports(source: LanguageCode, target: LanguageCode) async throws -> Bool {
         let supported = try await supportedLanguages()
         // Empty array means all pairs are supported
         if supported.isEmpty {
@@ -81,13 +81,15 @@ extension TranslationProvider {
     }
 }
 
-// MARK: - Provider Registry
+// MARK: - ProviderRegistry
 
 /// Registry for available translation providers.
 public actor ProviderRegistry {
-    private var providers: [String: any TranslationProvider] = [:]
+    // MARK: Lifecycle
 
     public init() {}
+
+    // MARK: Public
 
     /// Register a provider.
     public func register(_ provider: any TranslationProvider) {
@@ -117,7 +119,7 @@ public actor ProviderRegistry {
 
     /// Get providers sorted by priority from configuration.
     public func providers(
-        for config: Configuration
+        for config: Configuration,
     ) async -> [any TranslationProvider] {
         let enabledConfigs = config.providers
             .filter(\.enabled)
@@ -133,19 +135,26 @@ public actor ProviderRegistry {
         }
         return result
     }
+
+    // MARK: Private
+
+    private var providers: [String: any TranslationProvider] = [:]
 }
 
-// MARK: - Prompt Builder
+// MARK: - TranslationPromptBuilder
 
 /// Builds prompts for LLM-based translation providers.
 public struct TranslationPromptBuilder: Sendable {
+    // MARK: Lifecycle
 
     public init() {}
+
+    // MARK: Public
 
     /// Build a system prompt for translation.
     public func buildSystemPrompt(
         context: TranslationContext?,
-        targetLanguage: LanguageCode
+        targetLanguage: LanguageCode,
     ) -> String {
         var parts: [String] = []
 
@@ -211,7 +220,7 @@ public struct TranslationPromptBuilder: Sendable {
     public func buildUserPrompt(
         strings: [String],
         context: TranslationContext?,
-        targetLanguage: LanguageCode
+        targetLanguage: LanguageCode,
     ) -> String {
         let languageName = targetLanguage.displayName()
 
@@ -246,7 +255,7 @@ public struct TranslationPromptBuilder: Sendable {
     public func parseResponse(
         _ response: String,
         originalStrings: [String],
-        provider: String
+        provider: String,
     ) throws -> [TranslationResult] {
         // Extract JSON from response (handle markdown code blocks)
         let jsonString = extractJSON(from: response)
@@ -268,10 +277,12 @@ public struct TranslationPromptBuilder: Sendable {
                 original: original,
                 translated: translated,
                 confidence: translations[original] != nil ? 0.9 : 0.0,
-                provider: provider
+                provider: provider,
             )
         }
     }
+
+    // MARK: Private
 
     private func extractJSON(from response: String) -> String {
         var text = response.trimmingCharacters(in: .whitespacesAndNewlines)

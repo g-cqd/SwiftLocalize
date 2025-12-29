@@ -36,18 +36,22 @@ import Foundation
 /// let matches = await glossary.findTerms(in: "Record your LotoFuel fill-up today")
 /// ```
 public actor Glossary {
-
-    /// Storage location for the glossary.
-    private let storageURL: URL?
-
-    /// Terms indexed by their text (lowercased for matching).
-    private var terms: [String: GlossaryEntry] = [:]
-
-    /// Whether the glossary has unsaved changes.
-    private var isDirty: Bool = false
+    // MARK: Lifecycle
 
     public init(storageURL: URL? = nil) {
         self.storageURL = storageURL
+    }
+
+    // MARK: Public
+
+    /// Get all terms.
+    public var allTerms: [GlossaryEntry] {
+        terms.values.sorted { $0.term.lowercased() < $1.term.lowercased() }
+    }
+
+    /// Get the number of terms.
+    public var count: Int {
+        terms.count
     }
 
     // MARK: - Storage
@@ -114,16 +118,6 @@ public actor Glossary {
         terms[term.lowercased()]
     }
 
-    /// Get all terms.
-    public var allTerms: [GlossaryEntry] {
-        terms.values.sorted { $0.term.lowercased() < $1.term.lowercased() }
-    }
-
-    /// Get the number of terms.
-    public var count: Int {
-        terms.count
-    }
-
     /// Clear all terms.
     public func clear() {
         terms.removeAll()
@@ -151,7 +145,7 @@ public actor Glossary {
                     term: term.term,
                     doNotTranslate: term.doNotTranslate,
                     translations: term.translations,
-                    definition: term.definition
+                    definition: term.definition,
                 ))
             }
         }
@@ -177,11 +171,11 @@ public actor Glossary {
     /// - Returns: Formatted instructions for LLM prompt.
     public func toPromptInstructions(
         matches: [GlossaryMatch],
-        targetLanguage: String
+        targetLanguage: String,
     ) -> String {
         guard !matches.isEmpty else { return "" }
 
-        var instructions: [String] = ["Terminology to use:"]
+        var instructions = ["Terminology to use:"]
 
         for match in matches {
             if match.doNotTranslate {
@@ -208,11 +202,10 @@ public actor Glossary {
             let doNotTranslate = termConfig["doNotTranslate"] as? Bool ?? false
             let definition = termConfig["definition"] as? String
             let caseSensitive = termConfig["caseSensitive"] as? Bool ?? false
-            let partOfSpeech: PartOfSpeech?
-            if let posString = termConfig["partOfSpeech"] as? String {
-                partOfSpeech = PartOfSpeech(rawValue: posString)
+            let partOfSpeech: PartOfSpeech? = if let posString = termConfig["partOfSpeech"] as? String {
+                PartOfSpeech(rawValue: posString)
             } else {
-                partOfSpeech = nil
+                nil
             }
 
             var translations: [String: String] = [:]
@@ -226,7 +219,7 @@ public actor Glossary {
                 translations: translations,
                 caseSensitive: caseSensitive,
                 doNotTranslate: doNotTranslate,
-                partOfSpeech: partOfSpeech
+                partOfSpeech: partOfSpeech,
             ))
         }
     }
@@ -259,9 +252,20 @@ public actor Glossary {
             return dict
         }
     }
+
+    // MARK: Private
+
+    /// Storage location for the glossary.
+    private let storageURL: URL?
+
+    /// Terms indexed by their text (lowercased for matching).
+    private var terms: [String: GlossaryEntry] = [:]
+
+    /// Whether the glossary has unsaved changes.
+    private var isDirty: Bool = false
 }
 
-// MARK: - Storage Models
+// MARK: - GlossaryStorage
 
 /// Root storage structure for glossary.
 struct GlossaryStorage: Codable {
@@ -269,11 +273,33 @@ struct GlossaryStorage: Codable {
     var terms: [GlossaryEntry]
 }
 
+// MARK: - GlossaryEntry
+
 /// A single term in the glossary.
 ///
 /// This is separate from `GlossaryTerm` in Configuration to allow
 /// for richer metadata and different serialization.
 public struct GlossaryEntry: Codable, Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        term: String,
+        definition: String? = nil,
+        translations: [String: String] = [:],
+        caseSensitive: Bool = false,
+        doNotTranslate: Bool = false,
+        partOfSpeech: PartOfSpeech? = nil,
+    ) {
+        self.term = term
+        self.definition = definition
+        self.translations = translations
+        self.caseSensitive = caseSensitive
+        self.doNotTranslate = doNotTranslate
+        self.partOfSpeech = partOfSpeech
+    }
+
+    // MARK: Public
+
     /// The term text.
     public let term: String
 
@@ -291,31 +317,15 @@ public struct GlossaryEntry: Codable, Sendable, Equatable {
 
     /// Part of speech for grammatical context.
     public var partOfSpeech: PartOfSpeech?
-
-    public init(
-        term: String,
-        definition: String? = nil,
-        translations: [String: String] = [:],
-        caseSensitive: Bool = false,
-        doNotTranslate: Bool = false,
-        partOfSpeech: PartOfSpeech? = nil
-    ) {
-        self.term = term
-        self.definition = definition
-        self.translations = translations
-        self.caseSensitive = caseSensitive
-        self.doNotTranslate = doNotTranslate
-        self.partOfSpeech = partOfSpeech
-    }
 }
 
 // MARK: - Convenience Extensions
 
-extension Glossary {
+public extension Glossary {
     /// Create a glossary with pre-defined terms.
     ///
     /// Useful for testing and quick setup.
-    public static func withTerms(_ terms: [GlossaryEntry]) -> Glossary {
+    static func withTerms(_ terms: [GlossaryEntry]) -> Glossary {
         let glossary = Glossary()
         Task {
             await glossary.addTerms(terms)

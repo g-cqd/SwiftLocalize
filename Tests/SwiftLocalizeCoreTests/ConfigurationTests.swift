@@ -4,12 +4,11 @@
 //
 
 import Foundation
-import Testing
 @testable import SwiftLocalizeCore
+import Testing
 
 @Suite("Configuration Tests")
 struct ConfigurationTests {
-
     // MARK: - Default Configuration
 
     @Test("Default configuration has sensible defaults")
@@ -43,8 +42,8 @@ struct ConfigurationTests {
             sourceLanguage: LanguageCode("en"),
             targetLanguages: [LanguageCode("fr")],
             providers: [
-                ProviderConfiguration(name: .openai, enabled: true, priority: 1)
-            ]
+                ProviderConfiguration(name: .openai, enabled: true, priority: 1),
+            ],
         )
 
         let issues = loader.validate(config)

@@ -3,10 +3,10 @@
 //  SwiftLocalize
 //
 
-import Foundation
 import CryptoKit
+import Foundation
 
-// MARK: - Change Detector
+// MARK: - ChangeDetector
 
 /// Detects changes in source strings to enable incremental translation.
 ///
@@ -27,20 +27,30 @@ import CryptoKit
 /// try await detector.save()
 /// ```
 public actor ChangeDetector {
-    private let cacheURL: URL
-    private var cache: TranslationCache
+    // MARK: Lifecycle
 
     // MARK: - Initialization
 
     public init(cacheFile: URL) {
-        self.cacheURL = cacheFile
-        self.cache = TranslationCache()
+        cacheURL = cacheFile
+        cache = TranslationCache()
     }
 
     /// Initialize with a cache file path relative to a base directory.
     public init(cacheFileName: String, baseDirectory: URL) {
-        self.cacheURL = baseDirectory.appendingPathComponent(cacheFileName)
-        self.cache = TranslationCache()
+        cacheURL = baseDirectory.appendingPathComponent(cacheFileName)
+        cache = TranslationCache()
+    }
+
+    // MARK: Public
+
+    /// Get cache statistics.
+    public var statistics: CacheStatistics {
+        CacheStatistics(
+            totalEntries: cache.entries.count,
+            cacheVersion: cache.version,
+            lastUpdated: cache.entries.values.map(\.lastModified).max(),
+        )
     }
 
     // MARK: - Cache Persistence
@@ -85,7 +95,7 @@ public actor ChangeDetector {
     public func detectChanges(
         in xcstrings: XCStrings,
         targetLanguages: [LanguageCode],
-        forceRetranslate: Bool = false
+        forceRetranslate: Bool = false,
     ) -> ChangeDetectionResult {
         if forceRetranslate {
             return forceRetranslateAll(xcstrings: xcstrings, targetLanguages: targetLanguages)
@@ -99,7 +109,8 @@ public actor ChangeDetector {
         for (key, entry) in xcstrings.strings {
             // Get the source value
             guard let sourceLocalization = entry.localizations?[xcstrings.sourceLanguage],
-                  let sourceValue = sourceLocalization.stringUnit?.value else {
+                  let sourceValue = sourceLocalization.stringUnit?.value
+            else {
                 // Use key as fallback source
                 let sourceHash = computeHash(key)
                 let missing = findMissingLanguages(
@@ -107,7 +118,7 @@ public actor ChangeDetector {
                     sourceHash: sourceHash,
                     entry: entry,
                     targetLanguages: targetLanguages,
-                    xcstrings: xcstrings
+                    xcstrings: xcstrings,
                 )
                 if !missing.isEmpty {
                     needsTranslation[key] = missing
@@ -133,7 +144,7 @@ public actor ChangeDetector {
                         sourceHash: sourceHash,
                         entry: entry,
                         targetLanguages: targetLanguages,
-                        xcstrings: xcstrings
+                        xcstrings: xcstrings,
                     )
                     if missing.isEmpty {
                         unchanged.append(key)
@@ -148,7 +159,7 @@ public actor ChangeDetector {
                     sourceHash: sourceHash,
                     entry: entry,
                     targetLanguages: targetLanguages,
-                    xcstrings: xcstrings
+                    xcstrings: xcstrings,
                 )
                 if !missing.isEmpty {
                     needsTranslation[key] = missing
@@ -163,70 +174,7 @@ public actor ChangeDetector {
             stringsToTranslate: needsTranslation,
             unchanged: unchanged,
             newStrings: newStrings,
-            modifiedStrings: modifiedStrings
-        )
-    }
-
-    private func findMissingLanguages(
-        key: String,
-        sourceHash: String,
-        entry: StringEntry,
-        targetLanguages: [LanguageCode],
-        xcstrings: XCStrings
-    ) -> Set<LanguageCode> {
-        var missing: Set<LanguageCode> = []
-
-        for language in targetLanguages {
-            // Skip source language
-            guard language.code != xcstrings.sourceLanguage else { continue }
-
-            // Check if translation exists in xcstrings
-            let hasTranslation: Bool
-            if let localization = entry.localizations?[language.code],
-               let unit = localization.stringUnit,
-               unit.state == .translated,
-               !unit.value.isEmpty {
-                hasTranslation = true
-            } else {
-                hasTranslation = false
-            }
-
-            // Check if in cache
-            let inCache: Bool
-            if let cached = cache.entries[key],
-               cached.sourceHash == sourceHash,
-               cached.translatedLanguages.contains(language.code) {
-                inCache = true
-            } else {
-                inCache = false
-            }
-
-            if !hasTranslation && !inCache {
-                missing.insert(language)
-            }
-        }
-
-        return missing
-    }
-
-    private func forceRetranslateAll(
-        xcstrings: XCStrings,
-        targetLanguages: [LanguageCode]
-    ) -> ChangeDetectionResult {
-        var needsTranslation: [String: Set<LanguageCode>] = [:]
-
-        for key in xcstrings.strings.keys {
-            let languages = Set(targetLanguages.filter { $0.code != xcstrings.sourceLanguage })
-            if !languages.isEmpty {
-                needsTranslation[key] = languages
-            }
-        }
-
-        return ChangeDetectionResult(
-            stringsToTranslate: needsTranslation,
-            unchanged: [],
-            newStrings: Array(xcstrings.strings.keys),
-            modifiedStrings: []
+            modifiedStrings: modifiedStrings,
         )
     }
 
@@ -243,7 +191,7 @@ public actor ChangeDetector {
         key: String,
         sourceValue: String,
         languages: Set<String>,
-        provider: String
+        provider: String,
     ) {
         let sourceHash = computeHash(sourceValue)
 
@@ -266,7 +214,7 @@ public actor ChangeDetector {
                 sourceHash: sourceHash,
                 translatedLanguages: languages,
                 lastModified: Date(),
-                provider: provider
+                provider: provider,
             )
         }
     }
@@ -276,12 +224,69 @@ public actor ChangeDetector {
         cache.entries.removeValue(forKey: key)
     }
 
-    /// Get cache statistics.
-    public var statistics: CacheStatistics {
-        CacheStatistics(
-            totalEntries: cache.entries.count,
-            cacheVersion: cache.version,
-            lastUpdated: cache.entries.values.map(\.lastModified).max()
+    // MARK: Private
+
+    private let cacheURL: URL
+    private var cache: TranslationCache
+
+    private func findMissingLanguages(
+        key: String,
+        sourceHash: String,
+        entry: StringEntry,
+        targetLanguages: [LanguageCode],
+        xcstrings: XCStrings,
+    ) -> Set<LanguageCode> {
+        var missing: Set<LanguageCode> = []
+
+        for language in targetLanguages {
+            // Skip source language
+            guard language.code != xcstrings.sourceLanguage else { continue }
+
+            // Check if translation exists in xcstrings
+            let hasTranslation = if let localization = entry.localizations?[language.code],
+                                    let unit = localization.stringUnit,
+                                    unit.state == .translated,
+                                    !unit.value.isEmpty {
+                true
+            } else {
+                false
+            }
+
+            // Check if in cache
+            let inCache = if let cached = cache.entries[key],
+                             cached.sourceHash == sourceHash,
+                             cached.translatedLanguages.contains(language.code) {
+                true
+            } else {
+                false
+            }
+
+            if !hasTranslation, !inCache {
+                missing.insert(language)
+            }
+        }
+
+        return missing
+    }
+
+    private func forceRetranslateAll(
+        xcstrings: XCStrings,
+        targetLanguages: [LanguageCode],
+    ) -> ChangeDetectionResult {
+        var needsTranslation: [String: Set<LanguageCode>] = [:]
+
+        for key in xcstrings.strings.keys {
+            let languages = Set(targetLanguages.filter { $0.code != xcstrings.sourceLanguage })
+            if !languages.isEmpty {
+                needsTranslation[key] = languages
+            }
+        }
+
+        return ChangeDetectionResult(
+            stringsToTranslate: needsTranslation,
+            unchanged: [],
+            newStrings: Array(xcstrings.strings.keys),
+            modifiedStrings: [],
         )
     }
 
@@ -294,24 +299,46 @@ public actor ChangeDetector {
     }
 }
 
-// MARK: - Cache Models
+// MARK: - TranslationCache
 
 /// Persistent cache for translation state.
 public struct TranslationCache: Codable, Sendable {
-    /// Cache format version.
-    public var version: String
-
-    /// Cached entries by string key.
-    public var entries: [String: CacheEntry]
+    // MARK: Lifecycle
 
     public init(version: String = "1.0", entries: [String: CacheEntry] = [:]) {
         self.version = version
         self.entries = entries
     }
+
+    // MARK: Public
+
+    /// Cache format version.
+    public var version: String
+
+    /// Cached entries by string key.
+    public var entries: [String: CacheEntry]
 }
+
+// MARK: - CacheEntry
 
 /// A cached entry for a single string.
 public struct CacheEntry: Codable, Sendable {
+    // MARK: Lifecycle
+
+    public init(
+        sourceHash: String,
+        translatedLanguages: Set<String>,
+        lastModified: Date,
+        provider: String,
+    ) {
+        self.sourceHash = sourceHash
+        self.translatedLanguages = translatedLanguages
+        self.lastModified = lastModified
+        self.provider = provider
+    }
+
+    // MARK: Public
+
     /// Hash of the source string value.
     public var sourceHash: String
 
@@ -323,19 +350,9 @@ public struct CacheEntry: Codable, Sendable {
 
     /// Provider that last translated this string.
     public var provider: String
-
-    public init(
-        sourceHash: String,
-        translatedLanguages: Set<String>,
-        lastModified: Date,
-        provider: String
-    ) {
-        self.sourceHash = sourceHash
-        self.translatedLanguages = translatedLanguages
-        self.lastModified = lastModified
-        self.provider = provider
-    }
 }
+
+// MARK: - ChangeDetectionResult
 
 /// Result of change detection.
 public struct ChangeDetectionResult: Sendable {
@@ -366,6 +383,8 @@ public struct ChangeDetectionResult: Sendable {
         !stringsToTranslate.isEmpty
     }
 }
+
+// MARK: - CacheStatistics
 
 /// Statistics about the cache.
 public struct CacheStatistics: Sendable {

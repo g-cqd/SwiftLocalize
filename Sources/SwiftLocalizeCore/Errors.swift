@@ -5,7 +5,7 @@
 
 import Foundation
 
-// MARK: - Translation Errors
+// MARK: - TranslationError
 
 /// Errors that can occur during translation operations.
 public enum TranslationError: Error, Sendable, Equatable {
@@ -34,7 +34,7 @@ public enum TranslationError: Error, Sendable, Equatable {
     case cancelled
 }
 
-// MARK: - HTTP Errors
+// MARK: - HTTPError
 
 /// Errors that can occur during HTTP operations.
 public enum HTTPError: Error, Sendable, Equatable {
@@ -59,29 +59,38 @@ public enum HTTPError: Error, Sendable, Equatable {
     /// Network connection failed.
     case connectionFailed(String)
 
+    // MARK: Public
+
     public static func == (lhs: HTTPError, rhs: HTTPError) -> Bool {
         switch (lhs, rhs) {
         case let (.invalidURL(a), .invalidURL(b)):
-            return a == b
+            a == b
+
         case (.invalidResponse, .invalidResponse):
-            return true
+            true
+
         case let (.statusCode(codeA, dataA), .statusCode(codeB, dataB)):
-            return codeA == codeB && dataA == dataB
+            codeA == codeB && dataA == dataB
+
         case let (.encodingFailed(a), .encodingFailed(b)):
-            return a == b
+            a == b
+
         case let (.decodingFailed(a), .decodingFailed(b)):
-            return a == b
+            a == b
+
         case (.timeout, .timeout):
-            return true
+            true
+
         case let (.connectionFailed(a), .connectionFailed(b)):
-            return a == b
+            a == b
+
         default:
-            return false
+            false
         }
     }
 }
 
-// MARK: - Configuration Errors
+// MARK: - ConfigurationError
 
 /// Errors that can occur when loading or parsing configuration.
 public enum ConfigurationError: Error, Sendable, Equatable {
@@ -101,7 +110,7 @@ public enum ConfigurationError: Error, Sendable, Equatable {
     case environmentVariableNotFound(String)
 }
 
-// MARK: - XCStrings Errors
+// MARK: - XCStringsError
 
 /// Errors that can occur when parsing or writing xcstrings files.
 public enum XCStringsError: Error, Sendable, Equatable {
@@ -118,7 +127,7 @@ public enum XCStringsError: Error, Sendable, Equatable {
     case writeFailed(String)
 }
 
-// MARK: - Context Errors
+// MARK: - ContextError
 
 /// Errors that can occur during context extraction.
 public enum ContextError: Error, Sendable, Equatable {
@@ -132,7 +141,7 @@ public enum ContextError: Error, Sendable, Equatable {
     case glossaryLoadFailed(String)
 }
 
-// MARK: - Legacy Format Errors
+// MARK: - LegacyFormatError
 
 /// Errors that can occur when parsing legacy localization formats.
 public enum LegacyFormatError: Error, Sendable, Equatable {
@@ -161,120 +170,159 @@ public enum LegacyFormatError: Error, Sendable, Equatable {
     case writeFailed(String)
 }
 
-// MARK: - LocalizedError Conformance
+// MARK: - TranslationError + LocalizedError
 
 extension TranslationError: LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .noProvidersAvailable:
             return "No translation providers are available."
+
         case let .providerNotFound(name):
             return "Translation provider '\(name)' was not found."
+
         case let .unsupportedLanguagePair(source, target):
             return "Language pair \(source) → \(target) is not supported."
+
         case let .providerError(provider, message):
             return "Provider '\(provider)' error: \(message)"
+
         case let .allProvidersFailed(errors):
             let details = errors.map { "\($0.key): \($0.value)" }.joined(separator: ", ")
             return "All providers failed: \(details)"
+
         case let .rateLimitExceeded(provider, retryAfter):
             if let retry = retryAfter {
                 return "Rate limit exceeded for '\(provider)'. Retry after \(retry)s."
             }
             return "Rate limit exceeded for '\(provider)'."
+
         case let .invalidResponse(message):
             return "Invalid response: \(message)"
+
         case .cancelled:
             return "Translation was cancelled."
         }
     }
 }
 
+// MARK: - HTTPError + LocalizedError
+
 extension HTTPError: LocalizedError {
     public var errorDescription: String? {
         switch self {
         case let .invalidURL(url):
-            return "Invalid URL: \(url)"
+            "Invalid URL: \(url)"
+
         case .invalidResponse:
-            return "The server returned an invalid response."
+            "The server returned an invalid response."
+
         case let .statusCode(code, _):
-            return "HTTP error \(code)"
+            "HTTP error \(code)"
+
         case let .encodingFailed(message):
-            return "Failed to encode request: \(message)"
+            "Failed to encode request: \(message)"
+
         case let .decodingFailed(message):
-            return "Failed to decode response: \(message)"
+            "Failed to decode response: \(message)"
+
         case .timeout:
-            return "The request timed out."
+            "The request timed out."
+
         case let .connectionFailed(message):
-            return "Connection failed: \(message)"
+            "Connection failed: \(message)"
         }
     }
 }
+
+// MARK: - ConfigurationError + LocalizedError
 
 extension ConfigurationError: LocalizedError {
     public var errorDescription: String? {
         switch self {
         case let .fileNotFound(path):
-            return "Configuration file not found: \(path)"
+            "Configuration file not found: \(path)"
+
         case let .invalidFormat(message):
-            return "Invalid configuration format: \(message)"
+            "Invalid configuration format: \(message)"
+
         case let .missingRequiredField(field):
-            return "Missing required field: \(field)"
+            "Missing required field: \(field)"
+
         case let .invalidValue(field, message):
-            return "Invalid value for '\(field)': \(message)"
+            "Invalid value for '\(field)': \(message)"
+
         case let .environmentVariableNotFound(name):
-            return "Environment variable not found: \(name)"
+            "Environment variable not found: \(name)"
         }
     }
 }
+
+// MARK: - XCStringsError + LocalizedError
 
 extension XCStringsError: LocalizedError {
     public var errorDescription: String? {
         switch self {
         case let .fileNotFound(path):
-            return "XCStrings file not found: \(path)"
+            "XCStrings file not found: \(path)"
+
         case let .invalidJSON(message):
-            return "Invalid JSON: \(message)"
+            "Invalid JSON: \(message)"
+
         case let .invalidStructure(message):
-            return "Invalid xcstrings structure: \(message)"
+            "Invalid xcstrings structure: \(message)"
+
         case let .writeFailed(message):
-            return "Failed to write file: \(message)"
+            "Failed to write file: \(message)"
         }
     }
 }
+
+// MARK: - ContextError + LocalizedError
 
 extension ContextError: LocalizedError {
     public var errorDescription: String? {
         switch self {
         case let .sourceAnalysisFailed(message):
-            return "Source code analysis failed: \(message)"
+            "Source code analysis failed: \(message)"
+
         case let .translationMemoryLoadFailed(message):
-            return "Failed to load translation memory: \(message)"
+            "Failed to load translation memory: \(message)"
+
         case let .glossaryLoadFailed(message):
-            return "Failed to load glossary: \(message)"
+            "Failed to load glossary: \(message)"
         }
     }
 }
+
+// MARK: - LegacyFormatError + LocalizedError
 
 extension LegacyFormatError: LocalizedError {
     public var errorDescription: String? {
         switch self {
         case let .fileNotFound(path):
-            return "File not found: \(path)"
+            "File not found: \(path)"
+
         case let .encodingDetectionFailed(path):
-            return "Failed to detect encoding for: \(path)"
+            "Failed to detect encoding for: \(path)"
+
         case let .unsupportedEncoding(encoding):
-            return "Unsupported file encoding: \(encoding)"
+            "Unsupported file encoding: \(encoding)"
+
         case let .stringsParseError(line, message):
-            return "Parse error at line \(line): \(message)"
+            "Parse error at line \(line): \(message)"
+
         case let .stringsdictParseError(message):
-            return "Stringsdict parse error: \(message)"
+            "Stringsdict parse error: \(message)"
+
         case let .invalidPluralRule(key, message):
-            return "Invalid plural rule for '\(key)': \(message)"
+            "Invalid plural rule for '\(key)': \(message)"
+
         case let .missingRequiredKey(key, field):
-            return "Missing required field '\(field)' in key '\(key)'"
+            "Missing required field '\(field)' in key '\(key)'"
+
         case let .writeFailed(message):
-            return "Failed to write file: \(message)"
+            "Failed to write file: \(message)"
         }
     }
 }

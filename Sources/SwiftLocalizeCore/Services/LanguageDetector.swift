@@ -6,30 +6,58 @@
 import Foundation
 import NaturalLanguage
 
-// MARK: - Language Detector
+// MARK: - LanguageDetector
 
 /// Detects the language of text using Apple's NaturalLanguage framework.
 ///
 /// Uses `NLLanguageRecognizer` for on-device language detection without network calls.
 /// Works best with complete sentences; short single words may produce unreliable results.
 public struct LanguageDetector: Sendable {
+    // MARK: Lifecycle
+
+    public init(configuration: Configuration = .default) {
+        self.configuration = configuration
+    }
+
+    // MARK: Public
 
     /// Result of language detection.
     public struct DetectionResult: Sendable, Equatable {
-        /// The most likely language.
-        public let language: LanguageCode
-
-        /// Confidence score (0.0 to 1.0).
-        public let confidence: Double
+        // MARK: Lifecycle
 
         public init(language: LanguageCode, confidence: Double) {
             self.language = language
             self.confidence = confidence
         }
+
+        // MARK: Public
+
+        /// The most likely language.
+        public let language: LanguageCode
+
+        /// Confidence score (0.0 to 1.0).
+        public let confidence: Double
     }
 
     /// Configuration for language detection.
     public struct Configuration: Sendable {
+        // MARK: Lifecycle
+
+        public init(
+            languageConstraints: [LanguageCode] = [],
+            languageHints: [String: Double] = [:],
+            minimumConfidence: Double = 0.5,
+        ) {
+            self.languageConstraints = languageConstraints
+            self.languageHints = languageHints
+            self.minimumConfidence = minimumConfidence
+        }
+
+        // MARK: Public
+
+        /// Default configuration with no constraints.
+        public static let `default` = Configuration()
+
         /// Languages to constrain detection to (empty means all languages).
         public let languageConstraints: [LanguageCode]
 
@@ -38,25 +66,6 @@ public struct LanguageDetector: Sendable {
 
         /// Minimum confidence threshold for detection.
         public let minimumConfidence: Double
-
-        public init(
-            languageConstraints: [LanguageCode] = [],
-            languageHints: [String: Double] = [:],
-            minimumConfidence: Double = 0.5
-        ) {
-            self.languageConstraints = languageConstraints
-            self.languageHints = languageHints
-            self.minimumConfidence = minimumConfidence
-        }
-
-        /// Default configuration with no constraints.
-        public static let `default` = Configuration()
-    }
-
-    private let configuration: Configuration
-
-    public init(configuration: Configuration = .default) {
-        self.configuration = configuration
     }
 
     // MARK: - Detection Methods
@@ -111,7 +120,7 @@ public struct LanguageDetector: Sendable {
     /// - Returns: Array of detection results sorted by confidence (highest first).
     public func detectLanguages(
         in text: String,
-        maxResults: Int = 5
+        maxResults: Int = 5,
     ) -> [DetectionResult] {
         let recognizer = NLLanguageRecognizer()
 
@@ -142,7 +151,7 @@ public struct LanguageDetector: Sendable {
             .map { language, confidence in
                 DetectionResult(
                     language: LanguageCode(language.rawValue),
-                    confidence: confidence
+                    confidence: confidence,
                 )
             }
     }
@@ -157,7 +166,7 @@ public struct LanguageDetector: Sendable {
     public func isLanguage(
         _ text: String,
         expectedLanguage language: LanguageCode,
-        threshold: Double = 0.7
+        threshold: Double = 0.7,
     ) -> Bool {
         guard let result = detectLanguage(in: text) else {
             return false
@@ -173,16 +182,20 @@ public struct LanguageDetector: Sendable {
     public func detectLanguageTag(in text: String) -> String? {
         detectLanguage(in: text)?.language.code
     }
+
+    // MARK: Private
+
+    private let configuration: Configuration
 }
 
 // MARK: - Batch Detection
 
-extension LanguageDetector {
+public extension LanguageDetector {
     /// Detect languages for multiple texts.
     ///
     /// - Parameter texts: Array of texts to analyze.
     /// - Returns: Array of detection results (nil for texts where detection failed).
-    public func detectLanguages(in texts: [String]) -> [DetectionResult?] {
+    func detectLanguages(in texts: [String]) -> [DetectionResult?] {
         texts.map { detectLanguage(in: $0) }
     }
 
@@ -190,7 +203,7 @@ extension LanguageDetector {
     ///
     /// - Parameter texts: Array of texts to analyze.
     /// - Returns: Dictionary mapping language codes to texts in that language.
-    public func groupByLanguage(_ texts: [String]) -> [LanguageCode: [String]] {
+    func groupByLanguage(_ texts: [String]) -> [LanguageCode: [String]] {
         var groups: [LanguageCode: [String]] = [:]
 
         for text in texts {
@@ -205,17 +218,17 @@ extension LanguageDetector {
 
 // MARK: - Supported Languages
 
-extension LanguageDetector {
+public extension LanguageDetector {
     /// Get all languages supported by the language recognizer.
     ///
     /// - Returns: Set of supported language codes.
-    public static var supportedLanguages: Set<LanguageCode> {
+    static var supportedLanguages: Set<LanguageCode> {
         // NLLanguageRecognizer supports these languages as of macOS 14/iOS 17
         let languages: [String] = [
             "ar", "bg", "ca", "cs", "da", "de", "el", "en", "es", "fa",
             "fi", "fr", "he", "hi", "hr", "hu", "id", "it", "ja", "ko",
             "ms", "nb", "nl", "pl", "pt", "ro", "ru", "sk", "sv", "th",
-            "tr", "uk", "vi", "zh-Hans", "zh-Hant"
+            "tr", "uk", "vi", "zh-Hans", "zh-Hant",
         ]
         return Set(languages.map { LanguageCode($0) })
     }

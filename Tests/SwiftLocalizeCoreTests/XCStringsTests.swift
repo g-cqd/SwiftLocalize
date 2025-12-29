@@ -4,12 +4,11 @@
 //
 
 import Foundation
-import Testing
 @testable import SwiftLocalizeCore
+import Testing
 
 @Suite("XCStrings Parsing Tests")
 struct XCStringsTests {
-
     // MARK: - Parsing from Data
 
     @Test("Parse valid xcstrings JSON")
@@ -228,15 +227,15 @@ struct XCStringsTests {
                     localizations: [
                         "en": Localization(value: "Hello"),
                         "fr": Localization(value: "Bonjour"),
-                    ]
+                    ],
                 ),
                 "Goodbye": StringEntry(
                     localizations: [
                         "en": Localization(value: "Goodbye"),
-                    ]
+                    ],
                 ),
             ],
-            version: "1.0"
+            version: "1.0",
         )
 
         let encoded = try original.encode()
@@ -256,7 +255,7 @@ struct XCStringsTests {
             strings: [
                 "B": StringEntry(localizations: ["en": Localization(value: "B")]),
                 "A": StringEntry(localizations: ["en": Localization(value: "A")]),
-            ]
+            ],
         )
 
         let data = try xcstrings.encode(prettyPrint: true, sortKeys: true)
@@ -282,20 +281,20 @@ struct XCStringsTests {
                     localizations: [
                         "en": Localization(value: "Translated"),
                         "fr": Localization(value: "Traduit"),
-                    ]
+                    ],
                 ),
                 "NotTranslated": StringEntry(
                     localizations: [
                         "en": Localization(value: "Not Translated"),
-                    ]
+                    ],
                 ),
                 "DoNotTranslate": StringEntry(
                     shouldTranslate: false,
                     localizations: [
                         "en": Localization(value: "Do Not Translate"),
-                    ]
+                    ],
                 ),
-            ]
+            ],
         )
 
         let needingFr = xcstrings.keysNeedingTranslation(for: "fr")
@@ -318,15 +317,15 @@ struct XCStringsTests {
                         "en": Localization(value: "Hello"),
                         "fr": Localization(value: "Bonjour"),
                         "es": Localization(value: "Hola"),
-                    ]
+                    ],
                 ),
                 "Goodbye": StringEntry(
                     localizations: [
                         "en": Localization(value: "Goodbye"),
                         "de": Localization(value: "Auf Wiedersehen"),
-                    ]
+                    ],
                 ),
-            ]
+            ],
         )
 
         let languages = xcstrings.presentLanguages
@@ -346,20 +345,20 @@ struct XCStringsTests {
                     localizations: [
                         "en": Localization(value: "A"),
                         "fr": Localization(value: "A-fr"),
-                    ]
+                    ],
                 ),
                 "B": StringEntry(
                     localizations: [
                         "en": Localization(value: "B"),
                         "fr": Localization(value: "B-fr"),
-                    ]
+                    ],
                 ),
                 "C": StringEntry(
                     localizations: [
                         "en": Localization(value: "C"),
-                    ]
+                    ],
                 ),
-            ]
+            ],
         )
 
         #expect(xcstrings.translatedCount(for: "en") == 3)

@@ -5,7 +5,7 @@
 
 import Foundation
 
-// MARK: - Stringsdict File Model
+// MARK: - StringsdictFile
 
 /// Represents a legacy .stringsdict localization file.
 ///
@@ -34,16 +34,20 @@ import Foundation
 /// </dict>
 /// ```
 public struct StringsdictFile: Sendable, Equatable {
-    /// The language code this file represents.
-    public var language: String
-
-    /// Dictionary of plural entries keyed by their identifier.
-    public var entries: [String: StringsdictEntry]
+    // MARK: Lifecycle
 
     public init(language: String, entries: [String: StringsdictEntry] = [:]) {
         self.language = language
         self.entries = entries
     }
+
+    // MARK: Public
+
+    /// The language code this file represents.
+    public var language: String
+
+    /// Dictionary of plural entries keyed by their identifier.
+    public var entries: [String: StringsdictEntry]
 
     /// Get all keys sorted alphabetically.
     public var sortedKeys: [String] {
@@ -51,26 +55,44 @@ public struct StringsdictFile: Sendable, Equatable {
     }
 }
 
-// MARK: - Stringsdict Entry
+// MARK: - StringsdictEntry
 
 /// A single entry in a .stringsdict file.
 public struct StringsdictEntry: Sendable, Equatable {
-    /// The localized format key pattern (e.g., "%#@items@").
-    public var formatKey: String
-
-    /// Variables defined in this entry.
-    public var variables: [String: PluralVariable]
+    // MARK: Lifecycle
 
     public init(formatKey: String, variables: [String: PluralVariable] = [:]) {
         self.formatKey = formatKey
         self.variables = variables
     }
+
+    // MARK: Public
+
+    /// The localized format key pattern (e.g., "%#@items@").
+    public var formatKey: String
+
+    /// Variables defined in this entry.
+    public var variables: [String: PluralVariable]
 }
 
-// MARK: - Plural Variable
+// MARK: - PluralVariable
 
 /// A plural variable within a stringsdict entry.
 public struct PluralVariable: Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        formatSpecifier: String,
+        ruleType: String = "NSStringPluralRuleType",
+        pluralForms: [PluralCategory: String] = [:],
+    ) {
+        self.formatSpecifier = formatSpecifier
+        self.ruleType = ruleType
+        self.pluralForms = pluralForms
+    }
+
+    // MARK: Public
+
     /// The format specifier type (e.g., "lld", "d", "@").
     public var formatSpecifier: String
 
@@ -79,19 +101,9 @@ public struct PluralVariable: Sendable, Equatable {
 
     /// Plural forms keyed by CLDR category.
     public var pluralForms: [PluralCategory: String]
-
-    public init(
-        formatSpecifier: String,
-        ruleType: String = "NSStringPluralRuleType",
-        pluralForms: [PluralCategory: String] = [:]
-    ) {
-        self.formatSpecifier = formatSpecifier
-        self.ruleType = ruleType
-        self.pluralForms = pluralForms
-    }
 }
 
-// MARK: - Plural Category
+// MARK: - PluralCategory
 
 /// CLDR plural categories.
 public enum PluralCategory: String, Sendable, Codable, CaseIterable, Equatable {
@@ -102,6 +114,8 @@ public enum PluralCategory: String, Sendable, Codable, CaseIterable, Equatable {
     case many
     case other
 
+    // MARK: Public
+
     /// Categories required for a given language.
     ///
     /// Different languages use different subsets of plural categories.
@@ -110,15 +124,45 @@ public enum PluralCategory: String, Sendable, Codable, CaseIterable, Equatable {
 
         switch baseCode {
         // Languages with only "other"
-        case "ja", "ko", "zh", "vi", "th", "id", "ms":
+        case "id",
+             "ja",
+             "ko",
+             "ms",
+             "th",
+             "vi",
+             "zh":
             return [.other]
 
         // Languages with "one" and "other"
-        case "en", "de", "es", "it", "pt", "nl", "sv", "da", "no", "fi", "el", "he", "hi", "bn", "ta", "te", "ml":
+        case "bn",
+             "da",
+             "de",
+             "el",
+             "en",
+             "es",
+             "fi",
+             "he",
+             "hi",
+             "it",
+             "ml",
+             "nl",
+             "no",
+             "pt",
+             "sv",
+             "ta",
+             "te":
             return [.one, .other]
 
         // Languages with "one", "few", "many", "other"
-        case "ru", "uk", "pl", "cs", "sk", "hr", "sr", "bg", "sl":
+        case "bg",
+             "cs",
+             "hr",
+             "pl",
+             "ru",
+             "sk",
+             "sl",
+             "sr",
+             "uk":
             return [.one, .few, .many, .other]
 
         // Arabic has all categories
@@ -139,12 +183,15 @@ public enum PluralCategory: String, Sendable, Codable, CaseIterable, Equatable {
     }
 }
 
-// MARK: - Stringsdict Parser
+// MARK: - StringsdictFileParser
 
 /// Parses and writes legacy .stringsdict files.
 public actor StringsdictFileParser {
+    // MARK: Lifecycle
 
     public init() {}
+
+    // MARK: Public
 
     // MARK: - Parsing
 
@@ -172,7 +219,7 @@ public actor StringsdictFileParser {
         do {
             guard let dict = try PropertyListSerialization.propertyList(
                 from: data,
-                format: nil
+                format: nil,
             ) as? [String: Any] else {
                 throw LegacyFormatError.stringsdictParseError("Root must be a dictionary")
             }
@@ -195,6 +242,42 @@ public actor StringsdictFileParser {
 
         return StringsdictFile(language: language, entries: entries)
     }
+
+    // MARK: - Writing
+
+    /// Write a StringsdictFile to a URL.
+    public func write(_ file: StringsdictFile, to url: URL, sortKeys: Bool = true) throws {
+        let plist = serialize(file, sortKeys: sortKeys)
+
+        let data: Data
+        do {
+            data = try PropertyListSerialization.data(
+                fromPropertyList: plist,
+                format: .xml,
+                options: 0,
+            )
+        } catch {
+            throw LegacyFormatError.writeFailed("Failed to serialize plist: \(error.localizedDescription)")
+        }
+
+        try data.write(to: url, options: .atomic)
+    }
+
+    /// Serialize a StringsdictFile to a property list dictionary.
+    public func serialize(_ file: StringsdictFile, sortKeys: Bool = true) -> [String: Any] {
+        var plist: [String: Any] = [:]
+
+        let keys = sortKeys ? file.sortedKeys : Array(file.entries.keys)
+
+        for key in keys {
+            guard let entry = file.entries[key] else { continue }
+            plist[key] = serializeEntry(entry)
+        }
+
+        return plist
+    }
+
+    // MARK: Private
 
     // MARK: - Entry Parsing
 
@@ -225,7 +308,7 @@ public actor StringsdictFileParser {
     private func parsePluralVariable(
         name: String,
         dict: [String: Any],
-        parentKey: String
+        parentKey: String,
     ) throws -> PluralVariable {
         guard let formatValueType = dict["NSStringFormatValueTypeKey"] as? String else {
             throw LegacyFormatError.missingRequiredKey(key: parentKey, field: "NSStringFormatValueTypeKey")
@@ -245,54 +328,20 @@ public actor StringsdictFileParser {
         if pluralForms[.other] == nil {
             throw LegacyFormatError.invalidPluralRule(
                 key: parentKey,
-                message: "Variable '\(name)' missing required 'other' plural form"
+                message: "Variable '\(name)' missing required 'other' plural form",
             )
         }
 
         return PluralVariable(
             formatSpecifier: formatValueType,
             ruleType: ruleType,
-            pluralForms: pluralForms
+            pluralForms: pluralForms,
         )
-    }
-
-    // MARK: - Writing
-
-    /// Write a StringsdictFile to a URL.
-    public func write(_ file: StringsdictFile, to url: URL, sortKeys: Bool = true) throws {
-        let plist = serialize(file, sortKeys: sortKeys)
-
-        let data: Data
-        do {
-            data = try PropertyListSerialization.data(
-                fromPropertyList: plist,
-                format: .xml,
-                options: 0
-            )
-        } catch {
-            throw LegacyFormatError.writeFailed("Failed to serialize plist: \(error.localizedDescription)")
-        }
-
-        try data.write(to: url, options: .atomic)
-    }
-
-    /// Serialize a StringsdictFile to a property list dictionary.
-    public func serialize(_ file: StringsdictFile, sortKeys: Bool = true) -> [String: Any] {
-        var plist: [String: Any] = [:]
-
-        let keys = sortKeys ? file.sortedKeys : Array(file.entries.keys)
-
-        for key in keys {
-            guard let entry = file.entries[key] else { continue }
-            plist[key] = serializeEntry(entry)
-        }
-
-        return plist
     }
 
     private func serializeEntry(_ entry: StringsdictEntry) -> [String: Any] {
         var dict: [String: Any] = [
-            "NSStringLocalizedFormatKey": entry.formatKey
+            "NSStringLocalizedFormatKey": entry.formatKey,
         ]
 
         for (varName, variable) in entry.variables {
@@ -305,7 +354,7 @@ public actor StringsdictFileParser {
     private func serializeVariable(_ variable: PluralVariable) -> [String: Any] {
         var dict: [String: Any] = [
             "NSStringFormatSpecTypeKey": variable.ruleType,
-            "NSStringFormatValueTypeKey": variable.formatSpecifier
+            "NSStringFormatValueTypeKey": variable.formatSpecifier,
         ]
 
         for (category, form) in variable.pluralForms {

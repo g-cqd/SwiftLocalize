@@ -7,34 +7,52 @@ import Foundation
 
 // MARK: - UIElementType Extension
 
-extension UIElementType {
+public extension UIElementType {
     /// Human-readable description for LLM context.
-    public var contextDescription: String {
+    var contextDescription: String {
         switch self {
-        case .button: return "Button label (keep short, action-oriented)"
-        case .text: return "Body text (can be longer, informative)"
-        case .label: return "Label text (concise, descriptive)"
-        case .alert: return "Alert message (clear, possibly urgent)"
-        case .navigationTitle: return "Navigation title (short, identifies screen)"
-        case .confirmationDialog: return "Confirmation dialog (action-oriented options)"
-        case .textField: return "Text field placeholder (brief hint)"
-        case .tabItem: return "Tab bar item (very short, one or two words)"
-        case .sheet: return "Sheet title or content"
-        case .menu: return "Menu item (short, action-oriented)"
-        case .tooltip: return "Tooltip (brief explanation)"
-        case .placeholder: return "Placeholder text (hint for expected input)"
-        case .errorMessage: return "Error message (clear explanation of problem)"
-        case .successMessage: return "Success message (positive confirmation)"
-        case .accessibilityLabel: return "Accessibility label (describes UI element)"
-        case .accessibilityHint: return "Accessibility hint (describes action result)"
+        case .button: "Button label (keep short, action-oriented)"
+        case .text: "Body text (can be longer, informative)"
+        case .label: "Label text (concise, descriptive)"
+        case .alert: "Alert message (clear, possibly urgent)"
+        case .navigationTitle: "Navigation title (short, identifies screen)"
+        case .confirmationDialog: "Confirmation dialog (action-oriented options)"
+        case .textField: "Text field placeholder (brief hint)"
+        case .tabItem: "Tab bar item (very short, one or two words)"
+        case .sheet: "Sheet title or content"
+        case .menu: "Menu item (short, action-oriented)"
+        case .tooltip: "Tooltip (brief explanation)"
+        case .placeholder: "Placeholder text (hint for expected input)"
+        case .errorMessage: "Error message (clear explanation of problem)"
+        case .successMessage: "Success message (positive confirmation)"
+        case .accessibilityLabel: "Accessibility label (describes UI element)"
+        case .accessibilityHint: "Accessibility hint (describes action result)"
         }
     }
 }
 
-// MARK: - String Usage Context
+// MARK: - StringUsageContext
 
 /// Context about how a string key is used in the codebase.
 public struct StringUsageContext: Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        key: String,
+        elementTypes: Set<UIElementType> = [],
+        codeSnippets: [String] = [],
+        modifiers: [String] = [],
+        fileLocations: [String] = [],
+    ) {
+        self.key = key
+        self.elementTypes = elementTypes
+        self.codeSnippets = codeSnippets
+        self.modifiers = modifiers
+        self.fileLocations = fileLocations
+    }
+
+    // MARK: Public
+
     /// The string key being analyzed.
     public let key: String
 
@@ -49,20 +67,6 @@ public struct StringUsageContext: Sendable, Equatable {
 
     /// Files where the string is used.
     public let fileLocations: [String]
-
-    public init(
-        key: String,
-        elementTypes: Set<UIElementType> = [],
-        codeSnippets: [String] = [],
-        modifiers: [String] = [],
-        fileLocations: [String] = []
-    ) {
-        self.key = key
-        self.elementTypes = elementTypes
-        self.codeSnippets = codeSnippets
-        self.modifiers = modifiers
-        self.fileLocations = fileLocations
-    }
 
     /// Generate context description for LLM prompts.
     public func toContextDescription() -> String {
@@ -87,10 +91,28 @@ public struct StringUsageContext: Sendable, Equatable {
     }
 }
 
-// MARK: - Code Occurrence
+// MARK: - CodeOccurrence
 
 /// A location where a string key appears in source code.
 public struct CodeOccurrence: Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        file: String,
+        line: Int,
+        column: Int,
+        context: String,
+        matchedPattern: String? = nil,
+    ) {
+        self.file = file
+        self.line = line
+        self.column = column
+        self.context = context
+        self.matchedPattern = matchedPattern
+    }
+
+    // MARK: Public
+
     /// File path relative to project root.
     public let file: String
 
@@ -105,26 +127,30 @@ public struct CodeOccurrence: Sendable, Equatable {
 
     /// The matched pattern that found this occurrence.
     public let matchedPattern: String?
-
-    public init(
-        file: String,
-        line: Int,
-        column: Int,
-        context: String,
-        matchedPattern: String? = nil
-    ) {
-        self.file = file
-        self.line = line
-        self.column = column
-        self.context = context
-        self.matchedPattern = matchedPattern
-    }
 }
 
-// MARK: - Translation Memory Match
+// MARK: - TMMatch
 
 /// A match from the translation memory with extended metadata.
 public struct TMMatch: Sendable, Equatable, Hashable {
+    // MARK: Lifecycle
+
+    public init(
+        source: String,
+        translation: String,
+        similarity: Double,
+        provider: String? = nil,
+        humanReviewed: Bool = false,
+    ) {
+        self.source = source
+        self.translation = translation
+        self.similarity = similarity
+        self.provider = provider
+        self.humanReviewed = humanReviewed
+    }
+
+    // MARK: Public
+
     /// The source text that was matched.
     public let source: String
 
@@ -139,26 +165,28 @@ public struct TMMatch: Sendable, Equatable, Hashable {
 
     /// Whether a human reviewed this translation.
     public let humanReviewed: Bool
-
-    public init(
-        source: String,
-        translation: String,
-        similarity: Double,
-        provider: String? = nil,
-        humanReviewed: Bool = false
-    ) {
-        self.source = source
-        self.translation = translation
-        self.similarity = similarity
-        self.provider = provider
-        self.humanReviewed = humanReviewed
-    }
 }
 
-// MARK: - Glossary Match
+// MARK: - GlossaryMatch
 
 /// A glossary term found in a string.
 public struct GlossaryMatch: Sendable, Equatable, Hashable {
+    // MARK: Lifecycle
+
+    public init(
+        term: String,
+        doNotTranslate: Bool = false,
+        translations: [String: String] = [:],
+        definition: String? = nil,
+    ) {
+        self.term = term
+        self.doNotTranslate = doNotTranslate
+        self.translations = translations
+        self.definition = definition
+    }
+
+    // MARK: Public
+
     /// The matched term.
     public let term: String
 
@@ -171,31 +199,37 @@ public struct GlossaryMatch: Sendable, Equatable, Hashable {
     /// Definition or context for the term.
     public let definition: String?
 
-    public init(
-        term: String,
-        doNotTranslate: Bool = false,
-        translations: [String: String] = [:],
-        definition: String? = nil
-    ) {
-        self.term = term
-        self.doNotTranslate = doNotTranslate
-        self.translations = translations
-        self.definition = definition
+    public static func == (lhs: GlossaryMatch, rhs: GlossaryMatch) -> Bool {
+        lhs.term == rhs.term
     }
 
     public func hash(into hasher: inout Hasher) {
         hasher.combine(term)
     }
-
-    public static func == (lhs: GlossaryMatch, rhs: GlossaryMatch) -> Bool {
-        lhs.term == rhs.term
-    }
 }
 
-// MARK: - String Context
+// MARK: - StringContext
 
 /// Combined context for a single string to translate.
 public struct StringContext: Sendable {
+    // MARK: Lifecycle
+
+    public init(
+        key: String,
+        value: String,
+        comment: String? = nil,
+        usageContext: StringUsageContext? = nil,
+        glossaryTerms: [GlossaryMatch] = [],
+    ) {
+        self.key = key
+        self.value = value
+        self.comment = comment
+        self.usageContext = usageContext
+        self.glossaryTerms = glossaryTerms
+    }
+
+    // MARK: Public
+
     /// The string key.
     public let key: String
 
@@ -210,26 +244,30 @@ public struct StringContext: Sendable {
 
     /// Glossary terms found in the string.
     public let glossaryTerms: [GlossaryMatch]
-
-    public init(
-        key: String,
-        value: String,
-        comment: String? = nil,
-        usageContext: StringUsageContext? = nil,
-        glossaryTerms: [GlossaryMatch] = []
-    ) {
-        self.key = key
-        self.value = value
-        self.comment = comment
-        self.usageContext = usageContext
-        self.glossaryTerms = glossaryTerms
-    }
 }
 
-// MARK: - Translation Prompt Context
+// MARK: - TranslationPromptContext
 
 /// Complete context for generating translation prompts.
 public struct TranslationPromptContext: Sendable {
+    // MARK: Lifecycle
+
+    public init(
+        appContext: String,
+        stringContexts: [StringContext],
+        glossaryTerms: [GlossaryMatch] = [],
+        translationMemoryMatches: [TMMatch] = [],
+        targetLanguage: String,
+    ) {
+        self.appContext = appContext
+        self.stringContexts = stringContexts
+        self.glossaryTerms = glossaryTerms
+        self.translationMemoryMatches = translationMemoryMatches
+        self.targetLanguage = targetLanguage
+    }
+
+    // MARK: Public
+
     /// App-level context description.
     public let appContext: String
 
@@ -244,20 +282,6 @@ public struct TranslationPromptContext: Sendable {
 
     /// Target language code.
     public let targetLanguage: String
-
-    public init(
-        appContext: String,
-        stringContexts: [StringContext],
-        glossaryTerms: [GlossaryMatch] = [],
-        translationMemoryMatches: [TMMatch] = [],
-        targetLanguage: String
-    ) {
-        self.appContext = appContext
-        self.stringContexts = stringContexts
-        self.glossaryTerms = glossaryTerms
-        self.translationMemoryMatches = translationMemoryMatches
-        self.targetLanguage = targetLanguage
-    }
 
     /// Generate the system prompt for LLM translation.
     public func toSystemPrompt() -> String {
@@ -336,7 +360,7 @@ public struct TranslationPromptContext: Sendable {
     }
 }
 
-// MARK: - Translation Quality
+// MARK: - TranslationQuality
 
 /// Quality level of a stored translation.
 public enum TranslationQuality: String, Codable, Sendable {
@@ -345,7 +369,7 @@ public enum TranslationQuality: String, Codable, Sendable {
     case humanTranslated
 }
 
-// MARK: - Part of Speech
+// MARK: - PartOfSpeech
 
 /// Part of speech for glossary terms.
 public enum PartOfSpeech: String, Codable, Sendable {

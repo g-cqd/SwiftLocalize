@@ -5,11 +5,25 @@
 
 import Foundation
 
-// MARK: - XCStrings Root
+// MARK: - XCStrings
 
 /// Root structure for xcstrings (String Catalog) files.
 /// Conforms to Codable for JSON serialization and Sendable for thread safety.
 public struct XCStrings: Codable, Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        sourceLanguage: String,
+        strings: [String: StringEntry] = [:],
+        version: String = "1.0",
+    ) {
+        self.sourceLanguage = sourceLanguage
+        self.strings = strings
+        self.version = version
+    }
+
+    // MARK: Public
+
     /// The source language code (e.g., "en").
     public var sourceLanguage: String
 
@@ -18,22 +32,28 @@ public struct XCStrings: Codable, Sendable, Equatable {
 
     /// Format version (typically "1.0").
     public var version: String
-
-    public init(
-        sourceLanguage: String,
-        strings: [String: StringEntry] = [:],
-        version: String = "1.0"
-    ) {
-        self.sourceLanguage = sourceLanguage
-        self.strings = strings
-        self.version = version
-    }
 }
 
-// MARK: - String Entry
+// MARK: - StringEntry
 
 /// A single string entry in the catalog.
 public struct StringEntry: Codable, Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        comment: String? = nil,
+        extractionState: String? = nil,
+        shouldTranslate: Bool? = nil,
+        localizations: [String: Localization]? = nil,
+    ) {
+        self.comment = comment
+        self.extractionState = extractionState
+        self.shouldTranslate = shouldTranslate
+        self.localizations = localizations
+    }
+
+    // MARK: Public
+
     /// Developer comment providing context for translators.
     public var comment: String?
 
@@ -45,37 +65,18 @@ public struct StringEntry: Codable, Sendable, Equatable {
 
     /// Localizations keyed by language code.
     public var localizations: [String: Localization]?
-
-    public init(
-        comment: String? = nil,
-        extractionState: String? = nil,
-        shouldTranslate: Bool? = nil,
-        localizations: [String: Localization]? = nil
-    ) {
-        self.comment = comment
-        self.extractionState = extractionState
-        self.shouldTranslate = shouldTranslate
-        self.localizations = localizations
-    }
 }
 
 // MARK: - Localization
 
 /// A localization for a specific language.
 public struct Localization: Codable, Sendable, Equatable {
-    /// Simple string translation.
-    public var stringUnit: StringUnit?
-
-    /// Plural/device variations.
-    public var variations: Variations?
-
-    /// Dynamic substitutions.
-    public var substitutions: [String: Substitution]?
+    // MARK: Lifecycle
 
     public init(
         stringUnit: StringUnit? = nil,
         variations: Variations? = nil,
-        substitutions: [String: Substitution]? = nil
+        substitutions: [String: Substitution]? = nil,
     ) {
         self.stringUnit = stringUnit
         self.variations = variations
@@ -84,29 +85,44 @@ public struct Localization: Codable, Sendable, Equatable {
 
     /// Convenience initializer for simple translations.
     public init(value: String, state: TranslationState = .translated) {
-        self.stringUnit = StringUnit(state: state, value: value)
-        self.variations = nil
-        self.substitutions = nil
+        stringUnit = StringUnit(state: state, value: value)
+        variations = nil
+        substitutions = nil
     }
+
+    // MARK: Public
+
+    /// Simple string translation.
+    public var stringUnit: StringUnit?
+
+    /// Plural/device variations.
+    public var variations: Variations?
+
+    /// Dynamic substitutions.
+    public var substitutions: [String: Substitution]?
 }
 
-// MARK: - String Unit
+// MARK: - StringUnit
 
 /// A simple translated string with state.
 public struct StringUnit: Codable, Sendable, Equatable {
-    /// Translation state.
-    public var state: TranslationState
-
-    /// The translated string value.
-    public var value: String
+    // MARK: Lifecycle
 
     public init(state: TranslationState, value: String) {
         self.state = state
         self.value = value
     }
+
+    // MARK: Public
+
+    /// Translation state.
+    public var state: TranslationState
+
+    /// The translated string value.
+    public var value: String
 }
 
-// MARK: - Translation State
+// MARK: - TranslationState
 
 /// State of a translation.
 public enum TranslationState: String, Codable, Sendable, Equatable {
@@ -120,25 +136,43 @@ public enum TranslationState: String, Codable, Sendable, Equatable {
 
 /// Variations for plurals, devices, etc.
 public struct Variations: Codable, Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        plural: [String: Localization]? = nil,
+        device: [String: Localization]? = nil,
+    ) {
+        self.plural = plural
+        self.device = device
+    }
+
+    // MARK: Public
+
     /// Plural variations keyed by category (zero, one, two, few, many, other).
     public var plural: [String: Localization]?
 
     /// Device variations keyed by device type (iphone, ipad, mac, watch, appletv).
     public var device: [String: Localization]?
-
-    public init(
-        plural: [String: Localization]? = nil,
-        device: [String: Localization]? = nil
-    ) {
-        self.plural = plural
-        self.device = device
-    }
 }
 
 // MARK: - Substitution
 
 /// A substitution placeholder in a localized string.
 public struct Substitution: Codable, Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        argNum: Int? = nil,
+        formatSpecifier: String? = nil,
+        variations: Variations? = nil,
+    ) {
+        self.argNum = argNum
+        self.formatSpecifier = formatSpecifier
+        self.variations = variations
+    }
+
+    // MARK: Public
+
     /// Argument number for the substitution.
     public var argNum: Int?
 
@@ -147,35 +181,25 @@ public struct Substitution: Codable, Sendable, Equatable {
 
     /// Variations for this substitution.
     public var variations: Variations?
-
-    public init(
-        argNum: Int? = nil,
-        formatSpecifier: String? = nil,
-        variations: Variations? = nil
-    ) {
-        self.argNum = argNum
-        self.formatSpecifier = formatSpecifier
-        self.variations = variations
-    }
 }
 
 // MARK: - Parsing
 
-extension XCStrings {
+public extension XCStrings {
     /// Parse an xcstrings file from a URL.
-    public static func parse(from url: URL) throws -> XCStrings {
+    static func parse(from url: URL) throws -> XCStrings {
         let data = try Data(contentsOf: url)
         return try parse(from: data)
     }
 
     /// Parse xcstrings from JSON data.
-    public static func parse(from data: Data) throws -> XCStrings {
+    static func parse(from data: Data) throws -> XCStrings {
         let decoder = JSONDecoder()
         return try decoder.decode(XCStrings.self, from: data)
     }
 
     /// Encode to JSON data.
-    public func encode(prettyPrint: Bool = true, sortKeys: Bool = true) throws -> Data {
+    func encode(prettyPrint: Bool = true, sortKeys: Bool = true) throws -> Data {
         let encoder = JSONEncoder()
         var formatting: JSONEncoder.OutputFormatting = []
         if prettyPrint {
@@ -190,7 +214,7 @@ extension XCStrings {
     }
 
     /// Write to a file URL.
-    public func write(to url: URL, prettyPrint: Bool = true, sortKeys: Bool = true) throws {
+    func write(to url: URL, prettyPrint: Bool = true, sortKeys: Bool = true) throws {
         let data = try encode(prettyPrint: prettyPrint, sortKeys: sortKeys)
         try data.write(to: url)
     }
@@ -198,9 +222,9 @@ extension XCStrings {
 
 // MARK: - Utility Extensions
 
-extension XCStrings {
+public extension XCStrings {
     /// Get all string keys that need translation for a given language.
-    public func keysNeedingTranslation(for language: String) -> [String] {
+    func keysNeedingTranslation(for language: String) -> [String] {
         strings.compactMap { key, entry in
             guard entry.shouldTranslate != false else { return nil }
             guard entry.localizations?[language]?.stringUnit == nil else { return nil }
@@ -209,7 +233,7 @@ extension XCStrings {
     }
 
     /// Get all languages present in the catalog.
-    public var presentLanguages: Set<String> {
+    var presentLanguages: Set<String> {
         var languages = Set<String>()
         for entry in strings.values {
             guard let localizations = entry.localizations else { continue }
@@ -219,9 +243,9 @@ extension XCStrings {
     }
 
     /// Count of translated strings for a language.
-    public func translatedCount(for language: String) -> Int {
-        strings.values.filter { entry in
+    func translatedCount(for language: String) -> Int {
+        strings.values.count { entry in
             entry.localizations?[language]?.stringUnit != nil
-        }.count
+        }
     }
 }

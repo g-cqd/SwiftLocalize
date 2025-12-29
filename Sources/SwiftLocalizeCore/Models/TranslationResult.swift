@@ -5,10 +5,28 @@
 
 import Foundation
 
-// MARK: - Translation Result
+// MARK: - TranslationResult
 
 /// The result of translating a single string.
 public struct TranslationResult: Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        original: String,
+        translated: String,
+        confidence: Double? = nil,
+        provider: String,
+        metadata: [String: String]? = nil,
+    ) {
+        self.original = original
+        self.translated = translated
+        self.confidence = confidence
+        self.provider = provider
+        self.metadata = metadata
+    }
+
+    // MARK: Public
+
     /// The original source string.
     public let original: String
 
@@ -23,26 +41,36 @@ public struct TranslationResult: Sendable, Equatable {
 
     /// Additional metadata from the provider.
     public let metadata: [String: String]?
-
-    public init(
-        original: String,
-        translated: String,
-        confidence: Double? = nil,
-        provider: String,
-        metadata: [String: String]? = nil
-    ) {
-        self.original = original
-        self.translated = translated
-        self.confidence = confidence
-        self.provider = provider
-        self.metadata = metadata
-    }
 }
 
-// MARK: - Translation Context
+// MARK: - TranslationContext
 
 /// Context provided to translation providers for better translation quality.
 public struct TranslationContext: Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        appDescription: String? = nil,
+        domain: String? = nil,
+        preserveFormatters: Bool = true,
+        preserveMarkdown: Bool = true,
+        additionalInstructions: String? = nil,
+        glossaryTerms: [GlossaryTerm]? = nil,
+        translationMemoryMatches: [TranslationMemoryMatch]? = nil,
+        stringContexts: [String: StringTranslationContext]? = nil,
+    ) {
+        self.appDescription = appDescription
+        self.domain = domain
+        self.preserveFormatters = preserveFormatters
+        self.preserveMarkdown = preserveMarkdown
+        self.additionalInstructions = additionalInstructions
+        self.glossaryTerms = glossaryTerms
+        self.translationMemoryMatches = translationMemoryMatches
+        self.stringContexts = stringContexts
+    }
+
+    // MARK: Public
+
     /// Application description for context.
     public let appDescription: String?
 
@@ -66,32 +94,22 @@ public struct TranslationContext: Sendable, Equatable {
 
     /// UI element context for each string.
     public let stringContexts: [String: StringTranslationContext]?
-
-    public init(
-        appDescription: String? = nil,
-        domain: String? = nil,
-        preserveFormatters: Bool = true,
-        preserveMarkdown: Bool = true,
-        additionalInstructions: String? = nil,
-        glossaryTerms: [GlossaryTerm]? = nil,
-        translationMemoryMatches: [TranslationMemoryMatch]? = nil,
-        stringContexts: [String: StringTranslationContext]? = nil
-    ) {
-        self.appDescription = appDescription
-        self.domain = domain
-        self.preserveFormatters = preserveFormatters
-        self.preserveMarkdown = preserveMarkdown
-        self.additionalInstructions = additionalInstructions
-        self.glossaryTerms = glossaryTerms
-        self.translationMemoryMatches = translationMemoryMatches
-        self.stringContexts = stringContexts
-    }
 }
 
-// MARK: - Translation Memory Match
+// MARK: - TranslationMemoryMatch
 
 /// A match from translation memory.
 public struct TranslationMemoryMatch: Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(source: String, translation: String, similarity: Double) {
+        self.source = source
+        self.translation = translation
+        self.similarity = similarity
+    }
+
+    // MARK: Public
+
     /// The source string that was matched.
     public let source: String
 
@@ -100,18 +118,28 @@ public struct TranslationMemoryMatch: Sendable, Equatable {
 
     /// Similarity score (0.0 to 1.0).
     public let similarity: Double
-
-    public init(source: String, translation: String, similarity: Double) {
-        self.source = source
-        self.translation = translation
-        self.similarity = similarity
-    }
 }
 
-// MARK: - String Translation Context
+// MARK: - StringTranslationContext
 
 /// Context for a specific string being translated.
 public struct StringTranslationContext: Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        key: String,
+        comment: String? = nil,
+        uiElementTypes: Set<UIElementType>? = nil,
+        codeSnippets: [String]? = nil,
+    ) {
+        self.key = key
+        self.comment = comment
+        self.uiElementTypes = uiElementTypes
+        self.codeSnippets = codeSnippets
+    }
+
+    // MARK: Public
+
     /// The string key.
     public let key: String
 
@@ -123,21 +151,9 @@ public struct StringTranslationContext: Sendable, Equatable {
 
     /// Code snippets showing usage.
     public let codeSnippets: [String]?
-
-    public init(
-        key: String,
-        comment: String? = nil,
-        uiElementTypes: Set<UIElementType>? = nil,
-        codeSnippets: [String]? = nil
-    ) {
-        self.key = key
-        self.comment = comment
-        self.uiElementTypes = uiElementTypes
-        self.codeSnippets = codeSnippets
-    }
 }
 
-// MARK: - UI Element Type
+// MARK: - UIElementType
 
 /// Types of UI elements where strings might be used.
 public enum UIElementType: String, Sendable, Codable, Equatable, Hashable, CaseIterable {
@@ -159,10 +175,28 @@ public enum UIElementType: String, Sendable, Codable, Equatable, Hashable, CaseI
     case accessibilityHint
 }
 
-// MARK: - Translation Progress
+// MARK: - TranslationProgress
 
 /// Progress information for translation operations.
 public struct TranslationProgress: Sendable {
+    // MARK: Lifecycle
+
+    public init(
+        total: Int,
+        completed: Int,
+        failed: Int = 0,
+        currentLanguage: LanguageCode? = nil,
+        currentProvider: String? = nil,
+    ) {
+        self.total = total
+        self.completed = completed
+        self.failed = failed
+        self.currentLanguage = currentLanguage
+        self.currentProvider = currentProvider
+    }
+
+    // MARK: Public
+
     /// Total number of strings to translate.
     public let total: Int
 
@@ -183,26 +217,34 @@ public struct TranslationProgress: Sendable {
         guard total > 0 else { return 0 }
         return Double(completed) / Double(total)
     }
-
-    public init(
-        total: Int,
-        completed: Int,
-        failed: Int = 0,
-        currentLanguage: LanguageCode? = nil,
-        currentProvider: String? = nil
-    ) {
-        self.total = total
-        self.completed = completed
-        self.failed = failed
-        self.currentLanguage = currentLanguage
-        self.currentProvider = currentProvider
-    }
 }
 
-// MARK: - Translation Report
+// MARK: - TranslationReport
 
 /// Summary report of a translation operation.
 public struct TranslationReport: Sendable {
+    // MARK: Lifecycle
+
+    public init(
+        totalStrings: Int,
+        translatedCount: Int,
+        failedCount: Int,
+        skippedCount: Int,
+        byLanguage: [LanguageCode: LanguageReport],
+        duration: Duration,
+        errors: [TranslationReportError] = [],
+    ) {
+        self.totalStrings = totalStrings
+        self.translatedCount = translatedCount
+        self.failedCount = failedCount
+        self.skippedCount = skippedCount
+        self.byLanguage = byLanguage
+        self.duration = duration
+        self.errors = errors
+    }
+
+    // MARK: Public
+
     /// Total strings processed.
     public let totalStrings: Int
 
@@ -223,55 +265,49 @@ public struct TranslationReport: Sendable {
 
     /// Errors encountered.
     public let errors: [TranslationReportError]
-
-    public init(
-        totalStrings: Int,
-        translatedCount: Int,
-        failedCount: Int,
-        skippedCount: Int,
-        byLanguage: [LanguageCode: LanguageReport],
-        duration: Duration,
-        errors: [TranslationReportError] = []
-    ) {
-        self.totalStrings = totalStrings
-        self.translatedCount = translatedCount
-        self.failedCount = failedCount
-        self.skippedCount = skippedCount
-        self.byLanguage = byLanguage
-        self.duration = duration
-        self.errors = errors
-    }
 }
+
+// MARK: - LanguageReport
 
 /// Report for a single language.
 public struct LanguageReport: Sendable {
-    public let language: LanguageCode
-    public let translatedCount: Int
-    public let failedCount: Int
-    public let provider: String
+    // MARK: Lifecycle
 
     public init(
         language: LanguageCode,
         translatedCount: Int,
         failedCount: Int,
-        provider: String
+        provider: String,
     ) {
         self.language = language
         self.translatedCount = translatedCount
         self.failedCount = failedCount
         self.provider = provider
     }
+
+    // MARK: Public
+
+    public let language: LanguageCode
+    public let translatedCount: Int
+    public let failedCount: Int
+    public let provider: String
 }
+
+// MARK: - TranslationReportError
 
 /// An error in the translation report.
 public struct TranslationReportError: Sendable {
-    public let key: String
-    public let language: LanguageCode
-    public let message: String
+    // MARK: Lifecycle
 
     public init(key: String, language: LanguageCode, message: String) {
         self.key = key
         self.language = language
         self.message = message
     }
+
+    // MARK: Public
+
+    public let key: String
+    public let language: LanguageCode
+    public let message: String
 }

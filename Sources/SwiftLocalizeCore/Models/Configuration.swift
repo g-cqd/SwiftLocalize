@@ -9,6 +9,38 @@ import Foundation
 
 /// Root configuration for SwiftLocalize.
 public struct Configuration: Codable, Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        sourceLanguage: LanguageCode = .english,
+        targetLanguages: [LanguageCode] = [],
+        providers: [ProviderConfiguration] = [],
+        translation: TranslationSettings = .init(),
+        changeDetection: ChangeDetectionSettings = .init(),
+        files: FileSettings = .init(),
+        output: OutputSettings = .init(),
+        validation: ValidationSettings = .init(),
+        context: ContextSettings = .init(),
+        logging: LoggingSettings = .init(),
+        mode: OperationMode = .translationOnly,
+        isolation: IsolationSettings = .init(),
+    ) {
+        self.sourceLanguage = sourceLanguage
+        self.targetLanguages = targetLanguages
+        self.providers = providers
+        self.translation = translation
+        self.changeDetection = changeDetection
+        self.files = files
+        self.output = output
+        self.validation = validation
+        self.context = context
+        self.logging = logging
+        self.mode = mode
+        self.isolation = isolation
+    }
+
+    // MARK: Public
+
     /// Source language for translations.
     public var sourceLanguage: LanguageCode
 
@@ -44,50 +76,38 @@ public struct Configuration: Codable, Sendable, Equatable {
 
     /// Isolation settings.
     public var isolation: IsolationSettings
-
-    public init(
-        sourceLanguage: LanguageCode = .english,
-        targetLanguages: [LanguageCode] = [],
-        providers: [ProviderConfiguration] = [],
-        translation: TranslationSettings = .init(),
-        changeDetection: ChangeDetectionSettings = .init(),
-        files: FileSettings = .init(),
-        output: OutputSettings = .init(),
-        validation: ValidationSettings = .init(),
-        context: ContextSettings = .init(),
-        logging: LoggingSettings = .init(),
-        mode: OperationMode = .translationOnly,
-        isolation: IsolationSettings = .init()
-    ) {
-        self.sourceLanguage = sourceLanguage
-        self.targetLanguages = targetLanguages
-        self.providers = providers
-        self.translation = translation
-        self.changeDetection = changeDetection
-        self.files = files
-        self.output = output
-        self.validation = validation
-        self.context = context
-        self.logging = logging
-        self.mode = mode
-        self.isolation = isolation
-    }
 }
 
-// MARK: - Operation Mode
+// MARK: - OperationMode
 
 /// Operation mode for the tool.
 public enum OperationMode: String, Codable, Sendable, Equatable, CaseIterable {
     /// Only translate localization files, never touch source code.
     case translationOnly = "translation-only"
     /// Translate and optionally update code.
-    case full = "full"
+    case full
 }
 
-// MARK: - Isolation Settings
+// MARK: - IsolationSettings
 
 /// Settings for file isolation and safety.
 public struct IsolationSettings: Codable, Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        strict: Bool = true,
+        allowedWritePatterns: [String] = ["**/*.xcstrings", "**/.swiftlocalize-cache.json"],
+        verifyBeforeRun: Bool = true,
+        generateAuditLog: Bool = false,
+    ) {
+        self.strict = strict
+        self.allowedWritePatterns = allowedWritePatterns
+        self.verifyBeforeRun = verifyBeforeRun
+        self.generateAuditLog = generateAuditLog
+    }
+
+    // MARK: Public
+
     /// Whether strict isolation is enabled.
     public var strict: Bool
 
@@ -99,24 +119,28 @@ public struct IsolationSettings: Codable, Sendable, Equatable {
 
     /// Generate audit log.
     public var generateAuditLog: Bool
-
-    public init(
-        strict: Bool = true,
-        allowedWritePatterns: [String] = ["**/*.xcstrings", "**/.swiftlocalize-cache.json"],
-        verifyBeforeRun: Bool = true,
-        generateAuditLog: Bool = false
-    ) {
-        self.strict = strict
-        self.allowedWritePatterns = allowedWritePatterns
-        self.verifyBeforeRun = verifyBeforeRun
-        self.generateAuditLog = generateAuditLog
-    }
 }
 
-// MARK: - Provider Configuration
+// MARK: - ProviderConfiguration
 
 /// Configuration for a translation provider.
 public struct ProviderConfiguration: Codable, Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        name: ProviderName,
+        enabled: Bool = true,
+        priority: Int = 1,
+        config: ProviderConfig? = nil,
+    ) {
+        self.name = name
+        self.enabled = enabled
+        self.priority = priority
+        self.config = config
+    }
+
+    // MARK: Public
+
     /// Provider identifier.
     public var name: ProviderName
 
@@ -128,19 +152,9 @@ public struct ProviderConfiguration: Codable, Sendable, Equatable {
 
     /// Provider-specific configuration.
     public var config: ProviderConfig?
-
-    public init(
-        name: ProviderName,
-        enabled: Bool = true,
-        priority: Int = 1,
-        config: ProviderConfig? = nil
-    ) {
-        self.name = name
-        self.enabled = enabled
-        self.priority = priority
-        self.config = config
-    }
 }
+
+// MARK: - ProviderName
 
 /// Supported provider names.
 public enum ProviderName: String, Codable, Sendable, Equatable, CaseIterable {
@@ -157,8 +171,32 @@ public enum ProviderName: String, Codable, Sendable, Equatable, CaseIterable {
     case cliGeneric = "generic-cli"
 }
 
+// MARK: - ProviderConfig
+
 /// Provider-specific configuration options.
 public struct ProviderConfig: Codable, Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        model: String? = nil,
+        apiKeyEnv: String? = nil,
+        baseURL: String? = nil,
+        path: String? = nil,
+        args: [String]? = nil,
+        formality: Formality? = nil,
+        approvalMode: String? = nil,
+    ) {
+        self.model = model
+        self.apiKeyEnv = apiKeyEnv
+        self.baseURL = baseURL
+        self.path = path
+        self.args = args
+        self.formality = formality
+        self.approvalMode = approvalMode
+    }
+
+    // MARK: Public
+
     /// Model name (for LLM providers).
     public var model: String?
 
@@ -180,27 +218,11 @@ public struct ProviderConfig: Codable, Sendable, Equatable {
     /// Approval mode for Codex CLI.
     public var approvalMode: String?
 
-    public init(
-        model: String? = nil,
-        apiKeyEnv: String? = nil,
-        baseURL: String? = nil,
-        path: String? = nil,
-        args: [String]? = nil,
-        formality: Formality? = nil,
-        approvalMode: String? = nil
-    ) {
-        self.model = model
-        self.apiKeyEnv = apiKeyEnv
-        self.baseURL = baseURL
-        self.path = path
-        self.args = args
-        self.formality = formality
-        self.approvalMode = approvalMode
-    }
-
     /// Alias for CLI provider path (convenience accessor).
     public var cliPath: String? { path }
 }
+
+// MARK: - Formality
 
 /// Formality level for translation.
 public enum Formality: String, Codable, Sendable, Equatable {
@@ -211,10 +233,34 @@ public enum Formality: String, Codable, Sendable, Equatable {
     case preferLess = "prefer_less"
 }
 
-// MARK: - Translation Settings
+// MARK: - TranslationSettings
 
 /// Settings for translation behavior.
 public struct TranslationSettings: Codable, Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        batchSize: Int = 25,
+        concurrency: Int = 3,
+        rateLimit: Int = 60,
+        retries: Int = 3,
+        retryDelay: Double = 1.0,
+        context: String? = nil,
+        preserveFormatters: Bool = true,
+        preserveMarkdown: Bool = true,
+    ) {
+        self.batchSize = batchSize
+        self.concurrency = concurrency
+        self.rateLimit = rateLimit
+        self.retries = retries
+        self.retryDelay = retryDelay
+        self.context = context
+        self.preserveFormatters = preserveFormatters
+        self.preserveMarkdown = preserveMarkdown
+    }
+
+    // MARK: Public
+
     /// Number of strings to translate in a single batch.
     public var batchSize: Int
 
@@ -238,32 +284,30 @@ public struct TranslationSettings: Codable, Sendable, Equatable {
 
     /// Preserve Markdown syntax.
     public var preserveMarkdown: Bool
-
-    public init(
-        batchSize: Int = 25,
-        concurrency: Int = 3,
-        rateLimit: Int = 60,
-        retries: Int = 3,
-        retryDelay: Double = 1.0,
-        context: String? = nil,
-        preserveFormatters: Bool = true,
-        preserveMarkdown: Bool = true
-    ) {
-        self.batchSize = batchSize
-        self.concurrency = concurrency
-        self.rateLimit = rateLimit
-        self.retries = retries
-        self.retryDelay = retryDelay
-        self.context = context
-        self.preserveFormatters = preserveFormatters
-        self.preserveMarkdown = preserveMarkdown
-    }
 }
 
-// MARK: - Change Detection Settings
+// MARK: - ChangeDetectionSettings
 
 /// Settings for detecting changed strings.
 public struct ChangeDetectionSettings: Codable, Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        enabled: Bool = true,
+        strategy: ChangeDetectionStrategy = .hash,
+        cacheFile: String = ".swiftlocalize-cache.json",
+        incrementalOnly: Bool = true,
+        retranslateStates: [TranslationState] = [.needsReview, .stale],
+    ) {
+        self.enabled = enabled
+        self.strategy = strategy
+        self.cacheFile = cacheFile
+        self.incrementalOnly = incrementalOnly
+        self.retranslateStates = retranslateStates
+    }
+
+    // MARK: Public
+
     /// Whether change detection is enabled.
     public var enabled: Bool
 
@@ -278,21 +322,9 @@ public struct ChangeDetectionSettings: Codable, Sendable, Equatable {
 
     /// States that should trigger retranslation.
     public var retranslateStates: [TranslationState]
-
-    public init(
-        enabled: Bool = true,
-        strategy: ChangeDetectionStrategy = .hash,
-        cacheFile: String = ".swiftlocalize-cache.json",
-        incrementalOnly: Bool = true,
-        retranslateStates: [TranslationState] = [.needsReview, .stale]
-    ) {
-        self.enabled = enabled
-        self.strategy = strategy
-        self.cacheFile = cacheFile
-        self.incrementalOnly = incrementalOnly
-        self.retranslateStates = retranslateStates
-    }
 }
+
+// MARK: - ChangeDetectionStrategy
 
 /// Strategy for detecting changes.
 public enum ChangeDetectionStrategy: String, Codable, Sendable, Equatable {
@@ -301,29 +333,49 @@ public enum ChangeDetectionStrategy: String, Codable, Sendable, Equatable {
     case git
 }
 
-// MARK: - File Settings
+// MARK: - FileSettings
 
 /// Settings for file discovery.
 public struct FileSettings: Codable, Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        include: [String] = ["**/*.xcstrings"],
+        exclude: [String] = ["**/Pods/**", "**/.build/**", "**/DerivedData/**"],
+    ) {
+        self.include = include
+        self.exclude = exclude
+    }
+
+    // MARK: Public
+
     /// Glob patterns to include.
     public var include: [String]
 
     /// Glob patterns to exclude.
     public var exclude: [String]
-
-    public init(
-        include: [String] = ["**/*.xcstrings"],
-        exclude: [String] = ["**/Pods/**", "**/.build/**", "**/DerivedData/**"]
-    ) {
-        self.include = include
-        self.exclude = exclude
-    }
 }
 
-// MARK: - Output Settings
+// MARK: - OutputSettings
 
 /// Settings for output generation.
 public struct OutputSettings: Codable, Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        mode: OutputMode = .inPlace,
+        directory: String? = nil,
+        prettyPrint: Bool = true,
+        sortKeys: Bool = true,
+    ) {
+        self.mode = mode
+        self.directory = directory
+        self.prettyPrint = prettyPrint
+        self.sortKeys = sortKeys
+    }
+
+    // MARK: Public
+
     /// Output mode.
     public var mode: OutputMode
 
@@ -335,19 +387,9 @@ public struct OutputSettings: Codable, Sendable, Equatable {
 
     /// Whether to sort keys alphabetically.
     public var sortKeys: Bool
-
-    public init(
-        mode: OutputMode = .inPlace,
-        directory: String? = nil,
-        prettyPrint: Bool = true,
-        sortKeys: Bool = true
-    ) {
-        self.mode = mode
-        self.directory = directory
-        self.prettyPrint = prettyPrint
-        self.sortKeys = sortKeys
-    }
 }
+
+// MARK: - OutputMode
 
 /// Output mode for translations.
 public enum OutputMode: String, Codable, Sendable, Equatable {
@@ -355,10 +397,26 @@ public enum OutputMode: String, Codable, Sendable, Equatable {
     case separate
 }
 
-// MARK: - Validation Settings
+// MARK: - ValidationSettings
 
 /// Settings for translation validation.
 public struct ValidationSettings: Codable, Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        requireAllLanguages: Bool = true,
+        validateFormatters: Bool = true,
+        maxLength: Int = 0,
+        warnMissingComments: Bool = false,
+    ) {
+        self.requireAllLanguages = requireAllLanguages
+        self.validateFormatters = validateFormatters
+        self.maxLength = maxLength
+        self.warnMissingComments = warnMissingComments
+    }
+
+    // MARK: Public
+
     /// Require all target languages to have translations.
     public var requireAllLanguages: Bool
 
@@ -370,24 +428,36 @@ public struct ValidationSettings: Codable, Sendable, Equatable {
 
     /// Warn on missing comments.
     public var warnMissingComments: Bool
-
-    public init(
-        requireAllLanguages: Bool = true,
-        validateFormatters: Bool = true,
-        maxLength: Int = 0,
-        warnMissingComments: Bool = false
-    ) {
-        self.requireAllLanguages = requireAllLanguages
-        self.validateFormatters = validateFormatters
-        self.maxLength = maxLength
-        self.warnMissingComments = warnMissingComments
-    }
 }
 
-// MARK: - Context Settings
+// MARK: - ContextSettings
 
 /// Settings for context-aware translation.
 public struct ContextSettings: Codable, Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        app: AppContext? = nil,
+        depth: ContextDepth = .standard,
+        projectRoot: String? = nil,
+        sourceCode: SourceCodeSettings? = nil,
+        translationMemory: TranslationMemorySettings? = nil,
+        glossary: GlossarySettings? = nil,
+        comments: CommentsSettings? = nil,
+        includeGitContext: Bool = false,
+    ) {
+        self.app = app
+        self.depth = depth
+        self.projectRoot = projectRoot
+        self.sourceCode = sourceCode
+        self.translationMemory = translationMemory
+        self.glossary = glossary
+        self.comments = comments
+        self.includeGitContext = includeGitContext
+    }
+
+    // MARK: Public
+
     /// Application context.
     public var app: AppContext?
 
@@ -411,27 +481,9 @@ public struct ContextSettings: Codable, Sendable, Equatable {
 
     /// Include git blame context.
     public var includeGitContext: Bool
-
-    public init(
-        app: AppContext? = nil,
-        depth: ContextDepth = .standard,
-        projectRoot: String? = nil,
-        sourceCode: SourceCodeSettings? = nil,
-        translationMemory: TranslationMemorySettings? = nil,
-        glossary: GlossarySettings? = nil,
-        comments: CommentsSettings? = nil,
-        includeGitContext: Bool = false
-    ) {
-        self.app = app
-        self.depth = depth
-        self.projectRoot = projectRoot
-        self.sourceCode = sourceCode
-        self.translationMemory = translationMemory
-        self.glossary = glossary
-        self.comments = comments
-        self.includeGitContext = includeGitContext
-    }
 }
+
+// MARK: - ContextDepth
 
 /// Depth of context extraction.
 public enum ContextDepth: String, Codable, Sendable, Equatable, CaseIterable {
@@ -445,8 +497,28 @@ public enum ContextDepth: String, Codable, Sendable, Equatable, CaseIterable {
     case deep
 }
 
+// MARK: - AppContext
+
 /// Application context for translation.
 public struct AppContext: Codable, Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        name: String,
+        description: String? = nil,
+        domain: String? = nil,
+        tone: Tone? = nil,
+        formality: FormalityLevel? = nil,
+    ) {
+        self.name = name
+        self.description = description
+        self.domain = domain
+        self.tone = tone
+        self.formality = formality
+    }
+
+    // MARK: Public
+
     /// Application name.
     public var name: String
 
@@ -461,21 +533,9 @@ public struct AppContext: Codable, Sendable, Equatable {
 
     /// Desired formality level.
     public var formality: FormalityLevel?
-
-    public init(
-        name: String,
-        description: String? = nil,
-        domain: String? = nil,
-        tone: Tone? = nil,
-        formality: FormalityLevel? = nil
-    ) {
-        self.name = name
-        self.description = description
-        self.domain = domain
-        self.tone = tone
-        self.formality = formality
-    }
 }
+
+// MARK: - Tone
 
 /// Tone for translations.
 public enum Tone: String, Codable, Sendable, Equatable {
@@ -486,6 +546,8 @@ public enum Tone: String, Codable, Sendable, Equatable {
     case technical
 }
 
+// MARK: - FormalityLevel
+
 /// Formality level for translations.
 public enum FormalityLevel: String, Codable, Sendable, Equatable {
     case informal
@@ -493,8 +555,24 @@ public enum FormalityLevel: String, Codable, Sendable, Equatable {
     case formal
 }
 
+// MARK: - SourceCodeSettings
+
 /// Source code analysis settings.
 public struct SourceCodeSettings: Codable, Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        enabled: Bool = true,
+        paths: [String] = ["Sources/**/*.swift"],
+        exclude: [String] = ["**/*Tests*/**"],
+    ) {
+        self.enabled = enabled
+        self.paths = paths
+        self.exclude = exclude
+    }
+
+    // MARK: Public
+
     /// Whether source code analysis is enabled.
     public var enabled: Bool
 
@@ -503,20 +581,28 @@ public struct SourceCodeSettings: Codable, Sendable, Equatable {
 
     /// Paths to exclude.
     public var exclude: [String]
-
-    public init(
-        enabled: Bool = true,
-        paths: [String] = ["Sources/**/*.swift"],
-        exclude: [String] = ["**/*Tests*/**"]
-    ) {
-        self.enabled = enabled
-        self.paths = paths
-        self.exclude = exclude
-    }
 }
+
+// MARK: - TranslationMemorySettings
 
 /// Translation memory settings.
 public struct TranslationMemorySettings: Codable, Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        enabled: Bool = true,
+        file: String = ".swiftlocalize-tm.json",
+        minSimilarity: Double = 0.7,
+        maxMatches: Int = 5,
+    ) {
+        self.enabled = enabled
+        self.file = file
+        self.minSimilarity = minSimilarity
+        self.maxMatches = maxMatches
+    }
+
+    // MARK: Public
+
     /// Whether translation memory is enabled.
     public var enabled: Bool
 
@@ -528,22 +614,26 @@ public struct TranslationMemorySettings: Codable, Sendable, Equatable {
 
     /// Maximum number of matches to return.
     public var maxMatches: Int
-
-    public init(
-        enabled: Bool = true,
-        file: String = ".swiftlocalize-tm.json",
-        minSimilarity: Double = 0.7,
-        maxMatches: Int = 5
-    ) {
-        self.enabled = enabled
-        self.file = file
-        self.minSimilarity = minSimilarity
-        self.maxMatches = maxMatches
-    }
 }
+
+// MARK: - GlossarySettings
 
 /// Glossary settings.
 public struct GlossarySettings: Codable, Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        enabled: Bool = true,
+        file: String? = nil,
+        terms: [GlossaryTerm]? = nil,
+    ) {
+        self.enabled = enabled
+        self.file = file
+        self.terms = terms
+    }
+
+    // MARK: Public
+
     /// Whether glossary is enabled.
     public var enabled: Bool
 
@@ -552,20 +642,30 @@ public struct GlossarySettings: Codable, Sendable, Equatable {
 
     /// Inline glossary terms.
     public var terms: [GlossaryTerm]?
-
-    public init(
-        enabled: Bool = true,
-        file: String? = nil,
-        terms: [GlossaryTerm]? = nil
-    ) {
-        self.enabled = enabled
-        self.file = file
-        self.terms = terms
-    }
 }
+
+// MARK: - GlossaryTerm
 
 /// A glossary term definition.
 public struct GlossaryTerm: Codable, Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        term: String,
+        definition: String? = nil,
+        doNotTranslate: Bool? = nil,
+        translations: [String: String]? = nil,
+        caseSensitive: Bool? = nil,
+    ) {
+        self.term = term
+        self.definition = definition
+        self.doNotTranslate = doNotTranslate
+        self.translations = translations
+        self.caseSensitive = caseSensitive
+    }
+
+    // MARK: Public
+
     /// The term.
     public var term: String
 
@@ -580,43 +680,49 @@ public struct GlossaryTerm: Codable, Sendable, Equatable {
 
     /// Case sensitivity.
     public var caseSensitive: Bool?
-
-    public init(
-        term: String,
-        definition: String? = nil,
-        doNotTranslate: Bool? = nil,
-        translations: [String: String]? = nil,
-        caseSensitive: Bool? = nil
-    ) {
-        self.term = term
-        self.definition = definition
-        self.doNotTranslate = doNotTranslate
-        self.translations = translations
-        self.caseSensitive = caseSensitive
-    }
 }
+
+// MARK: - CommentsSettings
 
 /// Developer comments settings.
 public struct CommentsSettings: Codable, Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        includeInPrompt: Bool = true,
+        warnMissing: Bool = false,
+    ) {
+        self.includeInPrompt = includeInPrompt
+        self.warnMissing = warnMissing
+    }
+
+    // MARK: Public
+
     /// Include xcstrings comments in translation prompts.
     public var includeInPrompt: Bool
 
     /// Warn if strings lack comments.
     public var warnMissing: Bool
-
-    public init(
-        includeInPrompt: Bool = true,
-        warnMissing: Bool = false
-    ) {
-        self.includeInPrompt = includeInPrompt
-        self.warnMissing = warnMissing
-    }
 }
 
-// MARK: - Logging Settings
+// MARK: - LoggingSettings
 
 /// Settings for logging.
 public struct LoggingSettings: Codable, Sendable, Equatable {
+    // MARK: Lifecycle
+
+    public init(
+        level: LogLevel = .info,
+        format: LogFormat = .console,
+        file: String? = nil,
+    ) {
+        self.level = level
+        self.format = format
+        self.file = file
+    }
+
+    // MARK: Public
+
     /// Log level.
     public var level: LogLevel
 
@@ -625,17 +731,9 @@ public struct LoggingSettings: Codable, Sendable, Equatable {
 
     /// Log file path (optional).
     public var file: String?
-
-    public init(
-        level: LogLevel = .info,
-        format: LogFormat = .console,
-        file: String? = nil
-    ) {
-        self.level = level
-        self.format = format
-        self.file = file
-    }
 }
+
+// MARK: - LogLevel
 
 /// Log levels.
 public enum LogLevel: String, Codable, Sendable, Equatable, Comparable {
@@ -644,15 +742,20 @@ public enum LogLevel: String, Codable, Sendable, Equatable, Comparable {
     case warn
     case error
 
+    // MARK: Public
+
     public static func < (lhs: LogLevel, rhs: LogLevel) -> Bool {
         let order: [LogLevel] = [.debug, .info, .warn, .error]
         guard let lhsIndex = order.firstIndex(of: lhs),
-              let rhsIndex = order.firstIndex(of: rhs) else {
+              let rhsIndex = order.firstIndex(of: rhs)
+        else {
             return false
         }
         return lhsIndex < rhsIndex
     }
 }
+
+// MARK: - LogFormat
 
 /// Log output formats.
 public enum LogFormat: String, Codable, Sendable, Equatable {

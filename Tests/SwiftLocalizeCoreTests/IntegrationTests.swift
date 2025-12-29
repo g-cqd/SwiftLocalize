@@ -6,14 +6,23 @@
 //
 
 import Foundation
-import Testing
 @testable import SwiftLocalizeCore
+import Testing
 
-// MARK: - Integration Test Mock Provider
+// MARK: - IntegrationMockProvider
 
 /// A mock translation provider for integration testing.
 /// Named differently from ServiceTests mock to avoid conflicts.
 final class IntegrationMockProvider: TranslationProvider, @unchecked Sendable {
+    // MARK: Lifecycle
+
+    init(identifier: String = "mock", displayName: String = "Mock Provider") {
+        self.identifier = identifier
+        self.displayName = displayName
+    }
+
+    // MARK: Internal
+
     let identifier: String
     let displayName: String
 
@@ -24,11 +33,6 @@ final class IntegrationMockProvider: TranslationProvider, @unchecked Sendable {
     var lastTranslatedStrings: [String] = []
     var delay: Duration = .zero
 
-    init(identifier: String = "mock", displayName: String = "Mock Provider") {
-        self.identifier = identifier
-        self.displayName = displayName
-    }
-
     func isAvailable() async -> Bool {
         !shouldFail
     }
@@ -38,7 +42,7 @@ final class IntegrationMockProvider: TranslationProvider, @unchecked Sendable {
             LanguagePair(source: .english, target: .french),
             LanguagePair(source: .english, target: .german),
             LanguagePair(source: .english, target: .spanish),
-            LanguagePair(source: .english, target: .japanese)
+            LanguagePair(source: .english, target: .japanese),
         ]
     }
 
@@ -46,7 +50,7 @@ final class IntegrationMockProvider: TranslationProvider, @unchecked Sendable {
         _ strings: [String],
         from source: LanguageCode,
         to target: LanguageCode,
-        context: TranslationContext?
+        context: TranslationContext?,
     ) async throws -> [TranslationResult] {
         translateCallCount += 1
         lastTranslatedStrings = strings
@@ -58,7 +62,7 @@ final class IntegrationMockProvider: TranslationProvider, @unchecked Sendable {
         if shouldFail {
             throw failureError ?? TranslationError.providerError(
                 provider: identifier,
-                message: "Mock failure"
+                message: "Mock failure",
             )
         }
 
@@ -71,7 +75,7 @@ final class IntegrationMockProvider: TranslationProvider, @unchecked Sendable {
                 translated: translated,
                 confidence: 0.95,
                 provider: identifier,
-                metadata: ["mock": "true"]
+                metadata: ["mock": "true"],
             )
         }
     }
@@ -83,11 +87,10 @@ final class IntegrationMockProvider: TranslationProvider, @unchecked Sendable {
     }
 }
 
-// MARK: - Integration Tests
+// MARK: - FullTranslationPipelineTests
 
 @Suite("Full Translation Pipeline Tests")
 struct FullTranslationPipelineTests {
-
     @Test("Single string translation through mock provider")
     func singleStringTranslation() async throws {
         let provider = IntegrationMockProvider()
@@ -97,7 +100,7 @@ struct FullTranslationPipelineTests {
             ["Hello"],
             from: .english,
             to: .french,
-            context: nil
+            context: nil,
         )
 
         #expect(results.count == 1)
@@ -112,7 +115,7 @@ struct FullTranslationPipelineTests {
         provider.setTranslations([
             "One": "Un",
             "Two": "Deux",
-            "Three": "Trois"
+            "Three": "Trois",
         ], for: .french)
 
         let strings = ["One", "Two", "Three"]
@@ -120,7 +123,7 @@ struct FullTranslationPipelineTests {
             strings,
             from: .english,
             to: .french,
-            context: nil
+            context: nil,
         )
 
         #expect(results.count == 3)
@@ -141,7 +144,7 @@ struct FullTranslationPipelineTests {
             ["Hello"],
             from: .english,
             to: .german,
-            context: nil
+            context: nil,
         )
 
         #expect(results[0].translated == "[de] Hello")
@@ -158,11 +161,11 @@ struct FullTranslationPipelineTests {
                 ["Hello"],
                 from: .english,
                 to: .french,
-                context: nil
+                context: nil,
             )
             #expect(Bool(false), "Should have thrown")
         } catch let error as TranslationError {
-            if case .providerError(let name, let message) = error {
+            if case let .providerError(name, message) = error {
                 #expect(name == "mock")
                 #expect(message == "API rate limit")
             } else {
@@ -180,14 +183,14 @@ struct FullTranslationPipelineTests {
             appDescription: "A fuel tracking app",
             domain: "automotive",
             preserveFormatters: true,
-            preserveMarkdown: true
+            preserveMarkdown: true,
         )
 
         let results = try await provider.translate(
             ["Fill-up"],
             from: .english,
             to: .french,
-            context: context
+            context: context,
         )
 
         #expect(results.count == 1)
@@ -195,11 +198,10 @@ struct FullTranslationPipelineTests {
     }
 }
 
-// MARK: - Provider Registry Integration Tests
+// MARK: - ProviderRegistryIntegrationTests
 
 @Suite("Provider Registry Integration Tests")
 struct ProviderRegistryIntegrationTests {
-
     @Test("Register multiple providers and retrieve by identifier")
     func registerAndRetrieveMultiple() async {
         let registry = ProviderRegistry()
@@ -242,19 +244,18 @@ struct ProviderRegistryIntegrationTests {
     }
 }
 
-// MARK: - Translation Service Integration Tests
+// MARK: - TranslationServiceIntegrationTests
 
 @Suite("TranslationService Integration Tests")
 struct TranslationServiceIntegrationTests {
-
     @Test("Service initializes with configuration")
     func serviceInitialization() async {
         let config = Configuration(
             sourceLanguage: .english,
             targetLanguages: [.french],
             providers: [
-                ProviderConfiguration(name: .openai, enabled: true, priority: 1)
-            ]
+                ProviderConfiguration(name: .openai, enabled: true, priority: 1),
+            ],
         )
 
         let service = TranslationService(configuration: config)
@@ -267,7 +268,7 @@ struct TranslationServiceIntegrationTests {
         let config = Configuration(
             sourceLanguage: .english,
             targetLanguages: [.french],
-            providers: []
+            providers: [],
         )
 
         let service = TranslationService(configuration: config)
@@ -282,14 +283,14 @@ struct TranslationServiceIntegrationTests {
         let provider = IntegrationMockProvider(identifier: "test", displayName: "Test")
         provider.setTranslations([
             "Hello": "Bonjour",
-            "World": "Monde"
+            "World": "Monde",
         ], for: LanguageCode.french)
 
         let results = try await provider.translate(
             ["Hello", "World"],
             from: LanguageCode.english,
             to: LanguageCode.french,
-            context: nil
+            context: nil,
         )
 
         #expect(results.count == 2)
@@ -309,14 +310,14 @@ struct TranslationServiceIntegrationTests {
             ["Hello"],
             from: LanguageCode.english,
             to: LanguageCode.french,
-            context: nil
+            context: nil,
         )
 
         let germanResults = try await provider.translate(
             ["Hello"],
             from: LanguageCode.english,
             to: LanguageCode.german,
-            context: nil
+            context: nil,
         )
 
         #expect(frenchResults[0].translated == "Bonjour")
@@ -324,16 +325,11 @@ struct TranslationServiceIntegrationTests {
     }
 }
 
-// MARK: - Change Detector Integration Tests
+// MARK: - ChangeDetectorIntegrationTests
 
 @Suite("ChangeDetector Integration Tests")
 struct ChangeDetectorIntegrationTests {
-
-    /// Helper to create a temp cache file URL
-    private static func tempCacheFile() -> URL {
-        FileManager.default.temporaryDirectory
-            .appendingPathComponent("test-cache-\(UUID().uuidString).json")
-    }
+    // MARK: Internal
 
     @Test("Detect all strings as new on empty cache")
     func detectNewStringsOnEmptyCache() async throws {
@@ -343,14 +339,14 @@ struct ChangeDetectorIntegrationTests {
             sourceLanguage: "en",
             strings: [
                 "hello": StringEntry(localizations: [:]),
-                "world": StringEntry(localizations: [:])
-            ]
+                "world": StringEntry(localizations: [:]),
+            ],
         )
 
         let targetLanguages: [LanguageCode] = [.french]
         let result = await detector.detectChanges(
             in: xcstrings,
-            targetLanguages: targetLanguages
+            targetLanguages: targetLanguages,
         )
 
         #expect(result.stringsToTranslate.count == 2)
@@ -366,16 +362,16 @@ struct ChangeDetectorIntegrationTests {
             sourceLanguage: "en",
             strings: [
                 "hello": StringEntry(localizations: [
-                    "fr": Localization(stringUnit: StringUnit(state: .translated, value: "Bonjour"))
+                    "fr": Localization(stringUnit: StringUnit(state: .translated, value: "Bonjour")),
                 ]),
-                "world": StringEntry(localizations: [:])
-            ]
+                "world": StringEntry(localizations: [:]),
+            ],
         )
 
         let targetLanguages: [LanguageCode] = [.french]
         let result = await detector.detectChanges(
             in: xcstrings,
-            targetLanguages: targetLanguages
+            targetLanguages: targetLanguages,
         )
 
         #expect(result.stringsToTranslate.count == 1)
@@ -391,16 +387,16 @@ struct ChangeDetectorIntegrationTests {
             sourceLanguage: "en",
             strings: [
                 "hello": StringEntry(localizations: [
-                    "fr": Localization(stringUnit: StringUnit(state: .translated, value: "Bonjour"))
+                    "fr": Localization(stringUnit: StringUnit(state: .translated, value: "Bonjour")),
                     // German translation missing
-                ])
-            ]
+                ]),
+            ],
         )
 
         let targetLanguages: [LanguageCode] = [.french, .german]
         let result = await detector.detectChanges(
             in: xcstrings,
-            targetLanguages: targetLanguages
+            targetLanguages: targetLanguages,
         )
 
         #expect(result.stringsToTranslate.count == 1)
@@ -417,41 +413,49 @@ struct ChangeDetectorIntegrationTests {
             key: "hello",
             sourceValue: "Hello",
             languages: ["fr", "de"],
-            provider: "test"
+            provider: "test",
         )
 
         let xcstrings = XCStrings(
             sourceLanguage: "en",
             strings: [
-                "hello": StringEntry(localizations: [:])
-            ]
+                "hello": StringEntry(localizations: [:]),
+            ],
         )
 
         // If hash hasn't changed, should not need retranslation
         let targetLanguages: [LanguageCode] = [.french, .german]
         let result = await detector.detectChanges(
             in: xcstrings,
-            targetLanguages: targetLanguages
+            targetLanguages: targetLanguages,
         )
 
         // The detection depends on whether source hash matches
-        // Since we can't control the hash computation, just verify no crash
-        #expect(result.stringsToTranslate.count >= 0)
+        // Since we can't control the hash computation, just verify the result is valid
+        // (may or may not be empty depending on hash matching)
+        _ = result.stringsToTranslate
+    }
+
+    // MARK: Private
+
+    /// Helper to create a temp cache file URL
+    private static func tempCacheFile() -> URL {
+        FileManager.default.temporaryDirectory
+            .appendingPathComponent("test-cache-\(UUID().uuidString).json")
     }
 }
 
-// MARK: - Context Builder Integration Tests
+// MARK: - ContextBuilderIntegrationTests
 
 @Suite("ContextBuilder Integration Tests")
 struct ContextBuilderIntegrationTests {
-
     @Test("Build context with glossary and translation memory")
     func buildFullContext() async throws {
         let glossary = Glossary()
         await glossary.addTerm(GlossaryEntry(term: "LotoFuel", doNotTranslate: true))
         await glossary.addTerm(GlossaryEntry(
             term: "Fill-up",
-            translations: ["fr": "Plein"]
+            translations: ["fr": "Plein"],
         ))
 
         let tm = TranslationMemory()
@@ -459,7 +463,7 @@ struct ContextBuilderIntegrationTests {
             source: "Hello",
             translation: "Bonjour",
             language: "fr",
-            provider: "human"
+            provider: "human",
         )
 
         let config = ContextConfiguration(
@@ -469,21 +473,21 @@ struct ContextBuilderIntegrationTests {
             tone: .friendly,
             formality: .neutral,
             translationMemoryEnabled: true,
-            glossaryEnabled: true
+            glossaryEnabled: true,
         )
 
         let builder = ContextBuilder(
             config: config,
             translationMemory: tm,
-            glossary: glossary
+            glossary: glossary,
         )
 
         let context = try await builder.buildContext(
             for: [
                 ("greeting", "Hello", "Welcome message"),
-                ("fill_action", "Fill-up your LotoFuel account", "CTA button")
+                ("fill_action", "Fill-up your LotoFuel account", "CTA button"),
             ],
-            targetLanguage: "fr"
+            targetLanguage: "fr",
         )
 
         // Verify app context
@@ -511,17 +515,17 @@ struct ContextBuilderIntegrationTests {
             appName: "TestApp",
             appDescription: "Test application",
             domain: "testing",
-            glossaryEnabled: true
+            glossaryEnabled: true,
         )
 
         let builder = ContextBuilder(
             config: config,
-            glossary: glossary
+            glossary: glossary,
         )
 
         let context = try await builder.buildContext(
             for: [("key", "Save to Brand", nil)],
-            targetLanguage: "fr"
+            targetLanguage: "fr",
         )
 
         let systemPrompt = context.toSystemPrompt()
@@ -538,7 +542,7 @@ struct ContextBuilderIntegrationTests {
     func userPromptIncludesStrings() async throws {
         let config = ContextConfiguration(
             appName: "TestApp",
-            sourceCodeAnalysisEnabled: false
+            sourceCodeAnalysisEnabled: false,
         )
 
         let builder = ContextBuilder(config: config)
@@ -546,9 +550,9 @@ struct ContextBuilderIntegrationTests {
         let context = try await builder.buildContext(
             for: [
                 ("welcome", "Welcome to the app!", "Home screen greeting"),
-                ("cta", "Get Started", "Button text")
+                ("cta", "Get Started", "Button text"),
             ],
-            targetLanguage: "de"
+            targetLanguage: "de",
         )
 
         let userPrompt = context.toUserPrompt()
@@ -562,11 +566,10 @@ struct ContextBuilderIntegrationTests {
     }
 }
 
-// MARK: - XCStrings Round-Trip Tests
+// MARK: - XCStringsRoundTripTests
 
 @Suite("XCStrings Round-Trip Tests")
 struct XCStringsRoundTripTests {
-
     @Test("Parse and re-encode preserves structure")
     func parseAndReencodePreservesStructure() throws {
         let json = """
@@ -652,11 +655,10 @@ struct XCStringsRoundTripTests {
     }
 }
 
-// MARK: - Format Migration Integration Tests
+// MARK: - FormatMigrationIntegrationTests
 
 @Suite("Format Migration Integration Tests")
 struct FormatMigrationIntegrationTests {
-
     @Test("Migrate .strings to xcstrings preserves all entries")
     func migrateStringsPreservesEntries() async throws {
         // Create a StringsFile manually
@@ -664,14 +666,14 @@ struct FormatMigrationIntegrationTests {
             language: "en",
             entries: [
                 "hello": StringsEntry(value: "Hello World", comment: "Greeting message"),
-                "goodbye": StringsEntry(value: "Goodbye!", comment: "Farewell message")
-            ]
+                "goodbye": StringsEntry(value: "Goodbye!", comment: "Farewell message"),
+            ],
         )
 
         let migrator = FormatMigrator()
         let xcstrings = await migrator.migrateToXCStrings(
             stringsFiles: [stringsFile],
-            sourceLanguage: "en"
+            sourceLanguage: "en",
         )
 
         #expect(xcstrings.sourceLanguage == "en")
@@ -691,17 +693,17 @@ struct FormatMigrationIntegrationTests {
                     comment: "Greeting",
                     localizations: [
                         "en": Localization(stringUnit: StringUnit(state: .translated, value: "Hello")),
-                        "fr": Localization(stringUnit: StringUnit(state: .translated, value: "Bonjour"))
-                    ]
-                )
+                        "fr": Localization(stringUnit: StringUnit(state: .translated, value: "Bonjour")),
+                    ],
+                ),
             ],
-            version: "1.0"
+            version: "1.0",
         )
 
         let migrator = FormatMigrator()
         let (stringsFile, _) = await migrator.migrateToLegacy(
             xcstrings: xcstrings,
-            language: "fr"
+            language: "fr",
         )
 
         #expect(stringsFile.entries.count == 1)
@@ -710,16 +712,11 @@ struct FormatMigrationIntegrationTests {
     }
 }
 
-// MARK: - End-to-End Workflow Test
+// MARK: - EndToEndWorkflowTests
 
 @Suite("End-to-End Workflow Tests")
 struct EndToEndWorkflowTests {
-
-    /// Helper to create a temp cache file URL
-    private static func tempCacheFile() -> URL {
-        FileManager.default.temporaryDirectory
-            .appendingPathComponent("test-cache-\(UUID().uuidString).json")
-    }
+    // MARK: Internal
 
     @Test("Complete translation workflow")
     func completeTranslationWorkflow() async throws {
@@ -730,16 +727,16 @@ struct EndToEndWorkflowTests {
                 "welcome": StringEntry(
                     comment: "Home screen welcome message",
                     localizations: [
-                        "en": Localization(stringUnit: StringUnit(state: .translated, value: "Welcome to the app!"))
-                    ]
+                        "en": Localization(stringUnit: StringUnit(state: .translated, value: "Welcome to the app!")),
+                    ],
                 ),
                 "continue": StringEntry(
                     comment: "Continue button",
                     localizations: [
-                        "en": Localization(stringUnit: StringUnit(state: .translated, value: "Continue"))
-                    ]
-                )
-            ]
+                        "en": Localization(stringUnit: StringUnit(state: .translated, value: "Continue")),
+                    ],
+                ),
+            ],
         )
 
         // 2. Detect changes - should find strings needing French translation
@@ -747,7 +744,7 @@ struct EndToEndWorkflowTests {
         let frenchTargets: [LanguageCode] = [.french]
         let changes = await detector.detectChanges(
             in: xcstrings,
-            targetLanguages: frenchTargets
+            targetLanguages: frenchTargets,
         )
 
         #expect(changes.stringsToTranslate.count == 2)
@@ -757,7 +754,7 @@ struct EndToEndWorkflowTests {
         let contextConfig = ContextConfiguration(
             appName: "TestApp",
             domain: "general",
-            sourceCodeAnalysisEnabled: false
+            sourceCodeAnalysisEnabled: false,
         )
         let contextBuilder = ContextBuilder(config: contextConfig)
 
@@ -771,7 +768,7 @@ struct EndToEndWorkflowTests {
 
         let context = try await contextBuilder.buildContext(
             for: stringsToTranslate,
-            targetLanguage: "fr"
+            targetLanguage: "fr",
         )
 
         #expect(!context.toSystemPrompt().isEmpty)
@@ -781,18 +778,18 @@ struct EndToEndWorkflowTests {
         let provider = IntegrationMockProvider()
         provider.setTranslations([
             "Welcome to the app!": "Bienvenue dans l'application!",
-            "Continue": "Continuer"
+            "Continue": "Continuer",
         ], for: LanguageCode.french)
 
-        let valuesToTranslate = stringsToTranslate.map { $0.value }
+        let valuesToTranslate = stringsToTranslate.map(\.value)
         let translationResults = try await provider.translate(
             valuesToTranslate,
             from: LanguageCode.english,
             to: LanguageCode.french,
             context: TranslationContext(
                 appDescription: contextConfig.appDescription,
-                domain: contextConfig.domain
-            )
+                domain: contextConfig.domain,
+            ),
         )
 
         #expect(translationResults.count == 2)
@@ -803,24 +800,33 @@ struct EndToEndWorkflowTests {
             var entry = xcstrings.strings[stringEntry.key]!
             var localizations = entry.localizations ?? [:]
             localizations["fr"] = Localization(
-                stringUnit: StringUnit(state: .translated, value: translation)
+                stringUnit: StringUnit(state: .translated, value: translation),
             )
             entry.localizations = localizations
             xcstrings.strings[stringEntry.key] = entry
         }
 
         // 6. Verify translations applied
-        #expect(xcstrings.strings["welcome"]?.localizations?["fr"]?.stringUnit?.value == "Bienvenue dans l'application!")
+        #expect(xcstrings.strings["welcome"]?.localizations?["fr"]?.stringUnit?
+            .value == "Bienvenue dans l'application!")
         #expect(xcstrings.strings["continue"]?.localizations?["fr"]?.stringUnit?.value == "Continuer")
 
         // 7. Detect changes again - should find no more changes for French
         let targetLanguages: [LanguageCode] = [.french]
         let changesAfter = await detector.detectChanges(
             in: xcstrings,
-            targetLanguages: targetLanguages
+            targetLanguages: targetLanguages,
         )
 
         #expect(!changesAfter.hasChanges)
         #expect(changesAfter.stringsToTranslate.isEmpty)
+    }
+
+    // MARK: Private
+
+    /// Helper to create a temp cache file URL
+    private static func tempCacheFile() -> URL {
+        FileManager.default.temporaryDirectory
+            .appendingPathComponent("test-cache-\(UUID().uuidString).json")
     }
 }

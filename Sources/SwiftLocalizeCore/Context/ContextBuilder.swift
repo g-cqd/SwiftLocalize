@@ -5,10 +5,36 @@
 
 import Foundation
 
-// MARK: - Context Configuration
+// MARK: - ContextConfiguration
 
 /// Configuration for context-aware translation.
 public struct ContextConfiguration: Sendable, Equatable, Codable {
+    // MARK: Lifecycle
+
+    public init(
+        appName: String,
+        appDescription: String = "",
+        domain: String = "",
+        tone: Tone = .friendly,
+        formality: FormalityLevel = .neutral,
+        projectPath: URL? = nil,
+        sourceCodeAnalysisEnabled: Bool = true,
+        translationMemoryEnabled: Bool = true,
+        glossaryEnabled: Bool = true,
+    ) {
+        self.appName = appName
+        self.appDescription = appDescription
+        self.domain = domain
+        self.tone = tone
+        self.formality = formality
+        self.projectPath = projectPath
+        self.sourceCodeAnalysisEnabled = sourceCodeAnalysisEnabled
+        self.translationMemoryEnabled = translationMemoryEnabled
+        self.glossaryEnabled = glossaryEnabled
+    }
+
+    // MARK: Public
+
     /// App name for context.
     public let appName: String
 
@@ -36,28 +62,6 @@ public struct ContextConfiguration: Sendable, Equatable, Codable {
     /// Whether glossary is enabled.
     public let glossaryEnabled: Bool
 
-    public init(
-        appName: String,
-        appDescription: String = "",
-        domain: String = "",
-        tone: Tone = .friendly,
-        formality: FormalityLevel = .neutral,
-        projectPath: URL? = nil,
-        sourceCodeAnalysisEnabled: Bool = true,
-        translationMemoryEnabled: Bool = true,
-        glossaryEnabled: Bool = true
-    ) {
-        self.appName = appName
-        self.appDescription = appDescription
-        self.domain = domain
-        self.tone = tone
-        self.formality = formality
-        self.projectPath = projectPath
-        self.sourceCodeAnalysisEnabled = sourceCodeAnalysisEnabled
-        self.translationMemoryEnabled = translationMemoryEnabled
-        self.glossaryEnabled = glossaryEnabled
-    }
-
     /// Build app context string for LLM prompts.
     public func buildAppContext() -> String {
         var parts: [String] = []
@@ -81,33 +85,33 @@ public struct ContextConfiguration: Sendable, Equatable, Codable {
 
 // MARK: - Tone Extension
 
-extension Tone {
+public extension Tone {
     /// Human-readable description for prompts.
-    public var description: String {
+    var description: String {
         switch self {
-        case .friendly: return "Friendly and approachable"
-        case .professional: return "Professional and businesslike"
-        case .casual: return "Casual and conversational"
-        case .formal: return "Formal and polished"
-        case .technical: return "Technical and precise"
+        case .friendly: "Friendly and approachable"
+        case .professional: "Professional and businesslike"
+        case .casual: "Casual and conversational"
+        case .formal: "Formal and polished"
+        case .technical: "Technical and precise"
         }
     }
 }
 
 // MARK: - FormalityLevel Extension
 
-extension FormalityLevel {
+public extension FormalityLevel {
     /// Human-readable description for prompts.
-    public var description: String {
+    var description: String {
         switch self {
-        case .informal: return "Informal (use casual pronouns like 'tu' in French)"
-        case .neutral: return "Neutral (context-appropriate formality)"
-        case .formal: return "Formal (use polite pronouns like 'vous' in French)"
+        case .informal: "Informal (use casual pronouns like 'tu' in French)"
+        case .neutral: "Neutral (context-appropriate formality)"
+        case .formal: "Formal (use polite pronouns like 'vous' in French)"
         }
     }
 }
 
-// MARK: - Context Builder
+// MARK: - ContextBuilder
 
 /// Assembles rich context for LLM translation prompts.
 ///
@@ -135,24 +139,13 @@ extension FormalityLevel {
 /// print(context.toUserPrompt())
 /// ```
 public actor ContextBuilder {
-
-    /// Configuration for context building.
-    private let config: ContextConfiguration
-
-    /// Source code analyzer for usage context.
-    private let sourceCodeAnalyzer: SourceCodeAnalyzer?
-
-    /// Translation memory for consistency.
-    private let translationMemory: TranslationMemory?
-
-    /// Glossary for terminology.
-    private let glossary: Glossary?
+    // MARK: Lifecycle
 
     public init(
         config: ContextConfiguration,
         sourceCodeAnalyzer: SourceCodeAnalyzer? = nil,
         translationMemory: TranslationMemory? = nil,
-        glossary: Glossary? = nil
+        glossary: Glossary? = nil,
     ) {
         self.config = config
         self.sourceCodeAnalyzer = sourceCodeAnalyzer
@@ -163,10 +156,12 @@ public actor ContextBuilder {
     /// Convenience initializer with default components.
     public init(config: ContextConfiguration) {
         self.config = config
-        self.sourceCodeAnalyzer = config.sourceCodeAnalysisEnabled ? SourceCodeAnalyzer() : nil
-        self.translationMemory = nil
-        self.glossary = nil
+        sourceCodeAnalyzer = config.sourceCodeAnalysisEnabled ? SourceCodeAnalyzer() : nil
+        translationMemory = nil
+        glossary = nil
     }
+
+    // MARK: Public
 
     // MARK: - Context Building
 
@@ -178,7 +173,7 @@ public actor ContextBuilder {
     /// - Returns: Complete context for translation prompts.
     public func buildContext(
         for entries: [(key: String, value: String, comment: String?)],
-        targetLanguage: String
+        targetLanguage: String,
     ) async throws -> TranslationPromptContext {
         var stringContexts: [StringContext] = []
         var allGlossaryTerms: Set<GlossaryMatch> = []
@@ -212,7 +207,7 @@ public actor ContextBuilder {
                 let tmMatches = await tm.findSimilar(
                     to: entry.value,
                     targetLanguage: targetLanguage,
-                    limit: 3
+                    limit: 3,
                 )
                 relevantTMMatches.append(contentsOf: tmMatches)
             }
@@ -222,7 +217,7 @@ public actor ContextBuilder {
                 value: entry.value,
                 comment: comment,
                 usageContext: usageContext,
-                glossaryTerms: glossaryMatches
+                glossaryTerms: glossaryMatches,
             ))
         }
 
@@ -236,7 +231,7 @@ public actor ContextBuilder {
             stringContexts: stringContexts,
             glossaryTerms: Array(allGlossaryTerms),
             translationMemoryMatches: Array(uniqueTMMatches),
-            targetLanguage: targetLanguage
+            targetLanguage: targetLanguage,
         )
     }
 
@@ -245,11 +240,11 @@ public actor ContextBuilder {
         key: String,
         value: String,
         comment: String?,
-        targetLanguage: String
+        targetLanguage: String,
     ) async throws -> TranslationPromptContext {
         try await buildContext(
             for: [(key, value, comment)],
-            targetLanguage: targetLanguage
+            targetLanguage: targetLanguage,
         )
     }
 
@@ -260,7 +255,7 @@ public actor ContextBuilder {
     /// Faster but provides less context.
     public func buildSimpleContext(
         for entries: [(key: String, value: String, comment: String?)],
-        targetLanguage: String
+        targetLanguage: String,
     ) async -> TranslationPromptContext {
         var stringContexts: [StringContext] = []
         var allGlossaryTerms: Set<GlossaryMatch> = []
@@ -278,7 +273,7 @@ public actor ContextBuilder {
                 value: entry.value,
                 comment: entry.comment,
                 usageContext: nil,
-                glossaryTerms: glossaryMatches
+                glossaryTerms: glossaryMatches,
             ))
         }
 
@@ -287,7 +282,7 @@ public actor ContextBuilder {
             stringContexts: stringContexts,
             glossaryTerms: Array(allGlossaryTerms),
             translationMemoryMatches: [],
-            targetLanguage: targetLanguage
+            targetLanguage: targetLanguage,
         )
     }
 
@@ -299,7 +294,7 @@ public actor ContextBuilder {
             config: config,
             sourceCodeAnalyzer: sourceCodeAnalyzer,
             translationMemory: memory,
-            glossary: glossary
+            glossary: glossary,
         )
     }
 
@@ -309,16 +304,30 @@ public actor ContextBuilder {
             config: config,
             sourceCodeAnalyzer: sourceCodeAnalyzer,
             translationMemory: translationMemory,
-            glossary: glossary
+            glossary: glossary,
         )
     }
+
+    // MARK: Private
+
+    /// Configuration for context building.
+    private let config: ContextConfiguration
+
+    /// Source code analyzer for usage context.
+    private let sourceCodeAnalyzer: SourceCodeAnalyzer?
+
+    /// Translation memory for consistency.
+    private let translationMemory: TranslationMemory?
+
+    /// Glossary for terminology.
+    private let glossary: Glossary?
 }
 
 // MARK: - Prompt Generation Helpers
 
-extension TranslationPromptContext {
+public extension TranslationPromptContext {
     /// Generate a compact system prompt (for models with smaller context windows).
-    public func toCompactSystemPrompt() -> String {
+    func toCompactSystemPrompt() -> String {
         var parts: [String] = []
 
         parts.append("You are a translator for iOS apps. Target: \(targetLanguage)")
@@ -331,7 +340,7 @@ extension TranslationPromptContext {
                     return "\(term.term)=\(trans)"
                 }
                 return nil
-            }.compactMap { $0 }.joined(separator: ", ")
+            }.compactMap(\.self).joined(separator: ", ")
             if !termsList.isEmpty {
                 parts.append("Terms: \(termsList)")
             }
@@ -343,17 +352,17 @@ extension TranslationPromptContext {
     }
 
     /// Generate a structured JSON request format.
-    public func toJSONRequest() -> [String: Any] {
+    func toJSONRequest() -> [String: Any] {
         var request: [String: Any] = [
             "targetLanguage": targetLanguage,
-            "appContext": appContext
+            "appContext": appContext,
         ]
 
         var stringsToTranslate: [[String: Any]] = []
         for ctx in stringContexts {
             var item: [String: Any] = [
                 "key": ctx.key,
-                "value": ctx.value
+                "value": ctx.value,
             ]
             if let comment = ctx.comment {
                 item["comment"] = comment
@@ -385,37 +394,37 @@ extension TranslationPromptContext {
 
 // MARK: - Default Configuration
 
-extension ContextConfiguration {
+public extension ContextConfiguration {
     /// Default configuration for a generic app.
-    public static var `default`: ContextConfiguration {
+    static var `default`: ContextConfiguration {
         ContextConfiguration(
             appName: "App",
             appDescription: "",
             domain: "",
             tone: .friendly,
-            formality: .neutral
+            formality: .neutral,
         )
     }
 
     /// Configuration for a professional/business app.
-    public static func professional(appName: String, description: String = "") -> ContextConfiguration {
+    static func professional(appName: String, description: String = "") -> ContextConfiguration {
         ContextConfiguration(
             appName: appName,
             appDescription: description,
             domain: "business",
             tone: .professional,
-            formality: .formal
+            formality: .formal,
         )
     }
 
     /// Configuration for a casual/consumer app.
-    public static func casual(appName: String, description: String = "") -> ContextConfiguration {
+    static func casual(appName: String, description: String = "") -> ContextConfiguration {
         ContextConfiguration(
             appName: appName,
             appDescription: description,
             domain: "consumer",
             tone: .casual,
-            formality: .informal
+            formality: .informal,
         )
     }
 }
