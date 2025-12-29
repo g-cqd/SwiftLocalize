@@ -269,8 +269,7 @@ public actor FormatMigrator {
     private func convertStringsdictEntry(_ entry: StringsdictEntry) -> Localization {
         // For single-variable plurals, convert to variations
         if entry.variables.count == 1,
-           let (_, variable) = entry.variables.first
-        {
+           let (_, variable) = entry.variables.first {
             var pluralVariations: [String: Localization] = [:]
 
             for (category, form) in variable.pluralForms {

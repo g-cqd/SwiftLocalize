@@ -146,8 +146,7 @@ public actor TranslationMemory {
 
         // Check exact match first
         if let entry = entries[text],
-           let translation = entry.translations[targetLanguage]
-        {
+           let translation = entry.translations[targetLanguage] {
             return [
                 TMMatch(
                     source: text,

@@ -246,8 +246,7 @@ public actor IsolationVerifier {
 
         // Translation memory file (if enabled)
         if let tmSettings = configuration.context.translationMemory,
-           tmSettings.enabled
-        {
+           tmSettings.enabled {
             let tmURL = URL(fileURLWithPath: tmSettings.file)
             modifications.append(PlannedModification(
                 url: tmURL,
@@ -273,8 +272,7 @@ public actor IsolationVerifier {
 
         // Source code files (if context extraction is enabled)
         if let sourceSettings = configuration.context.sourceCode,
-           sourceSettings.enabled
-        {
+           sourceSettings.enabled {
             let sourceFiles = try await findSourceFiles(
                 patterns: sourceSettings.paths,
                 excludes: sourceSettings.exclude,
@@ -290,8 +288,7 @@ public actor IsolationVerifier {
         // Glossary file (if enabled)
         if let glossarySettings = configuration.context.glossary,
            glossarySettings.enabled,
-           let glossaryFile = glossarySettings.file
-        {
+           let glossaryFile = glossarySettings.file {
             let glossaryURL = URL(fileURLWithPath: glossaryFile)
             reads.append(PlannedRead(
                 url: glossaryURL,
@@ -301,8 +298,7 @@ public actor IsolationVerifier {
 
         // Translation memory file (if enabled)
         if let tmSettings = configuration.context.translationMemory,
-           tmSettings.enabled
-        {
+           tmSettings.enabled {
             let tmURL = URL(fileURLWithPath: tmSettings.file)
             reads.append(PlannedRead(
                 url: tmURL,

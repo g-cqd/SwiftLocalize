@@ -183,8 +183,7 @@ public actor ContextBuilder {
         var usageContexts: [String: StringUsageContext] = [:]
         if config.sourceCodeAnalysisEnabled,
            let projectPath = config.projectPath,
-           let analyzer = sourceCodeAnalyzer
-        {
+           let analyzer = sourceCodeAnalyzer {
             let keys = entries.map(\.key)
             usageContexts = try await analyzer.analyzeUsage(keys: keys, in: projectPath)
         }

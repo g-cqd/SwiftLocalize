@@ -316,8 +316,7 @@ public actor ChangeDetector {
             let hasTranslation = if let localization = entry.localizations?[language.code],
                                     let unit = localization.stringUnit,
                                     unit.state == .translated,
-                                    !unit.value.isEmpty
-            {
+                                    !unit.value.isEmpty {
                 true
             } else {
                 false
@@ -326,8 +325,7 @@ public actor ChangeDetector {
             // Check if in cache
             let inCache = if let cached = cache.entries[key],
                              cached.sourceHash == sourceHash,
-                             cached.translatedLanguages.contains(language.code)
-            {
+                             cached.translatedLanguages.contains(language.code) {
                 true
             } else {
                 false

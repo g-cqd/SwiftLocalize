@@ -218,8 +218,7 @@ public actor SourceCodeAnalyzer {
                 path.contains("DerivedData/") ||
                 path.contains("Pods/") ||
                 path.contains(".git/") ||
-                path.contains("Carthage/")
-            {
+                path.contains("Carthage/") {
                 continue
             }
 

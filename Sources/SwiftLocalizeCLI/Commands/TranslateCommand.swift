@@ -439,8 +439,7 @@ struct TranslateCommand: AsyncParsableCommand {
         for key in previewKeys {
             if let entry = xcstrings.strings[key],
                let sourceLocalization = entry.localizations?[xcstrings.sourceLanguage],
-               let sourceValue = sourceLocalization.stringUnit?.value
-            {
+               let sourceValue = sourceLocalization.stringUnit?.value {
                 stringsToPreview.append(sourceValue)
             } else {
                 stringsToPreview.append(key)

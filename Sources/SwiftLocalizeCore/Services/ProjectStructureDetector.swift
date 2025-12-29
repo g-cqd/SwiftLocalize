@@ -511,8 +511,7 @@ public actor ProjectStructureDetector {
             if url.lastPathComponent.hasPrefix(".") ||
                 url.lastPathComponent == "Build" ||
                 url.lastPathComponent == ".build" ||
-                url.lastPathComponent == "DerivedData"
-            {
+                url.lastPathComponent == "DerivedData" {
                 enumerator?.skipDescendants()
             }
         }
@@ -571,8 +570,7 @@ public actor ProjectStructureDetector {
         for (index, component) in pathComponents.enumerated() {
             // After Sources/ or the project name directory
             if component == "Sources" || component == projectName,
-               index + 1 < pathComponents.count
-            {
+               index + 1 < pathComponents.count {
                 return pathComponents[index + 1]
             }
         }
