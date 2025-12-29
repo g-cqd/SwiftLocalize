@@ -39,6 +39,12 @@ public struct Configuration: Codable, Sendable, Equatable {
     /// Logging settings.
     public var logging: LoggingSettings
 
+    /// Operation mode.
+    public var mode: OperationMode
+
+    /// Isolation settings.
+    public var isolation: IsolationSettings
+
     public init(
         sourceLanguage: LanguageCode = .english,
         targetLanguages: [LanguageCode] = [],
@@ -49,7 +55,9 @@ public struct Configuration: Codable, Sendable, Equatable {
         output: OutputSettings = .init(),
         validation: ValidationSettings = .init(),
         context: ContextSettings = .init(),
-        logging: LoggingSettings = .init()
+        logging: LoggingSettings = .init(),
+        mode: OperationMode = .translationOnly,
+        isolation: IsolationSettings = .init()
     ) {
         self.sourceLanguage = sourceLanguage
         self.targetLanguages = targetLanguages
@@ -61,6 +69,47 @@ public struct Configuration: Codable, Sendable, Equatable {
         self.validation = validation
         self.context = context
         self.logging = logging
+        self.mode = mode
+        self.isolation = isolation
+    }
+}
+
+// MARK: - Operation Mode
+
+/// Operation mode for the tool.
+public enum OperationMode: String, Codable, Sendable, Equatable, CaseIterable {
+    /// Only translate localization files, never touch source code.
+    case translationOnly = "translation-only"
+    /// Translate and optionally update code.
+    case full = "full"
+}
+
+// MARK: - Isolation Settings
+
+/// Settings for file isolation and safety.
+public struct IsolationSettings: Codable, Sendable, Equatable {
+    /// Whether strict isolation is enabled.
+    public var strict: Bool
+
+    /// Allowed write patterns (glob).
+    public var allowedWritePatterns: [String]
+
+    /// Verify isolation before running.
+    public var verifyBeforeRun: Bool
+
+    /// Generate audit log.
+    public var generateAuditLog: Bool
+
+    public init(
+        strict: Bool = true,
+        allowedWritePatterns: [String] = ["**/*.xcstrings", "**/.swiftlocalize-cache.json"],
+        verifyBeforeRun: Bool = true,
+        generateAuditLog: Bool = false
+    ) {
+        self.strict = strict
+        self.allowedWritePatterns = allowedWritePatterns
+        self.verifyBeforeRun = verifyBeforeRun
+        self.generateAuditLog = generateAuditLog
     }
 }
 
@@ -342,6 +391,12 @@ public struct ContextSettings: Codable, Sendable, Equatable {
     /// Application context.
     public var app: AppContext?
 
+    /// Context extraction depth.
+    public var depth: ContextDepth
+
+    /// Project root path (absolute). Used for source code analysis.
+    public var projectRoot: String?
+
     /// Source code analysis settings.
     public var sourceCode: SourceCodeSettings?
 
@@ -354,19 +409,40 @@ public struct ContextSettings: Codable, Sendable, Equatable {
     /// Developer comments settings.
     public var comments: CommentsSettings?
 
+    /// Include git blame context.
+    public var includeGitContext: Bool
+
     public init(
         app: AppContext? = nil,
+        depth: ContextDepth = .standard,
+        projectRoot: String? = nil,
         sourceCode: SourceCodeSettings? = nil,
         translationMemory: TranslationMemorySettings? = nil,
         glossary: GlossarySettings? = nil,
-        comments: CommentsSettings? = nil
+        comments: CommentsSettings? = nil,
+        includeGitContext: Bool = false
     ) {
         self.app = app
+        self.depth = depth
+        self.projectRoot = projectRoot
         self.sourceCode = sourceCode
         self.translationMemory = translationMemory
         self.glossary = glossary
         self.comments = comments
+        self.includeGitContext = includeGitContext
     }
+}
+
+/// Depth of context extraction.
+public enum ContextDepth: String, Codable, Sendable, Equatable, CaseIterable {
+    /// No context extraction (fastest).
+    case none
+    /// Key usage locations only.
+    case minimal
+    /// Usage + surrounding code.
+    case standard
+    /// Full file analysis with UI element detection.
+    case deep
 }
 
 /// Application context for translation.

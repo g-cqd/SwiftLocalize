@@ -184,7 +184,7 @@ public actor TranslationMemory {
 
     /// Get statistics about the translation memory.
     public var statistics: TMStatistics {
-        var totalEntries = entries.count
+        let totalEntries = entries.count
         var languageCounts: [String: Int] = [:]
         var humanReviewedCount = 0
         var providerCounts: [String: Int] = [:]

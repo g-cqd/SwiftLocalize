@@ -15,10 +15,13 @@ public actor TranslationService {
     private let configuration: Configuration
     private let rateLimiter: RateLimiter
     private let promptBuilder: TranslationPromptBuilder
+    private let sourceCodeAnalyzer: SourceCodeAnalyzer?
+    private let fileAccessAuditor: FileAccessAuditor?
 
     public init(
         configuration: Configuration,
-        registry: ProviderRegistry? = nil
+        registry: ProviderRegistry? = nil,
+        enableAuditing: Bool = false
     ) {
         self.configuration = configuration
         self.registry = registry ?? ProviderRegistry()
@@ -26,6 +29,13 @@ public actor TranslationService {
             requestsPerMinute: configuration.translation.rateLimit
         )
         self.promptBuilder = TranslationPromptBuilder()
+        self.fileAccessAuditor = enableAuditing ? FileAccessAuditor() : nil
+
+        if configuration.context.sourceCode?.enabled == true {
+            self.sourceCodeAnalyzer = SourceCodeAnalyzer()
+        } else {
+            self.sourceCodeAnalyzer = nil
+        }
     }
 
     // MARK: - Provider Registration
@@ -135,6 +145,9 @@ public actor TranslationService {
         var errors: [TranslationReportError] = []
 
         for url in urls {
+            // Record file read for auditing
+            await fileAccessAuditor?.recordRead(url: url, purpose: "Load xcstrings for translation")
+
             var xcstrings = try XCStrings.parse(from: url)
             let sourceLanguage = LanguageCode(xcstrings.sourceLanguage)
 
@@ -151,6 +164,47 @@ public actor TranslationService {
                 }
 
                 totalStrings += keysToTranslate.count
+
+                // Analyze source code usage if enabled
+                var stringContexts: [String: StringTranslationContext] = [:]
+                if let analyzer = sourceCodeAnalyzer {
+                    let projectRoot = resolveProjectRoot(from: url)
+                    if let usageData = try? await analyzer.analyzeUsage(
+                        keys: Array(keysToTranslate),
+                        in: projectRoot
+                    ) {
+                        // Map usage data to contexts
+                        for (key, usage) in usageData {
+                            // Find the value for this key to map it correctly
+                            guard let entry = xcstrings.strings[key],
+                                  let sourceLocalization = entry.localizations?[sourceLanguage.code],
+                                  let value = sourceLocalization.stringUnit?.value else {
+                                continue
+                            }
+                            
+                            stringContexts[value] = StringTranslationContext(
+                                key: key,
+                                comment: entry.comment,
+                                uiElementTypes: usage.elementTypes,
+                                codeSnippets: usage.codeSnippets
+                            )
+                        }
+                    }
+                } else {
+                    // Just populate comments if no analysis
+                    for key in keysToTranslate {
+                        guard let entry = xcstrings.strings[key],
+                              let sourceLocalization = entry.localizations?[sourceLanguage.code],
+                              let value = sourceLocalization.stringUnit?.value else {
+                            continue
+                        }
+                        
+                        stringContexts[value] = StringTranslationContext(
+                            key: key,
+                            comment: entry.comment
+                        )
+                    }
+                }
 
                 // Get source strings
                 let stringsToTranslate = keysToTranslate.compactMap { key -> (key: String, value: String)? in
@@ -176,10 +230,39 @@ public actor TranslationService {
 
                 for batch in batches {
                     do {
+                        // Build context for this batch
+                        var batchContext = buildDefaultContext()
+                        // Merge with analyzed contexts
+                        if let existing = batchContext.stringContexts {
+                            let merged = existing.merging(stringContexts) { (_, new) in new }
+                            batchContext = TranslationContext(
+                                appDescription: batchContext.appDescription,
+                                domain: batchContext.domain,
+                                preserveFormatters: batchContext.preserveFormatters,
+                                preserveMarkdown: batchContext.preserveMarkdown,
+                                additionalInstructions: batchContext.additionalInstructions,
+                                glossaryTerms: batchContext.glossaryTerms,
+                                translationMemoryMatches: batchContext.translationMemoryMatches,
+                                stringContexts: merged
+                            )
+                        } else {
+                            batchContext = TranslationContext(
+                                appDescription: batchContext.appDescription,
+                                domain: batchContext.domain,
+                                preserveFormatters: batchContext.preserveFormatters,
+                                preserveMarkdown: batchContext.preserveMarkdown,
+                                additionalInstructions: batchContext.additionalInstructions,
+                                glossaryTerms: batchContext.glossaryTerms,
+                                translationMemoryMatches: batchContext.translationMemoryMatches,
+                                stringContexts: stringContexts
+                            )
+                        }
+
                         let results = try await translateBatch(
                             batch.map(\.value),
                             from: sourceLanguage,
-                            to: targetLanguage
+                            to: targetLanguage,
+                            context: batchContext
                         )
 
                         // Apply translations
@@ -224,6 +307,9 @@ public actor TranslationService {
                 }
             }
 
+            // Record file write for auditing
+            await fileAccessAuditor?.recordWrite(url: url, purpose: "Save translated xcstrings")
+
             // Write updated xcstrings
             try xcstrings.write(
                 to: url,
@@ -243,6 +329,24 @@ public actor TranslationService {
             duration: duration,
             errors: errors
         )
+    }
+
+    // MARK: - File Access Auditing
+
+    /// Get the file access audit report.
+    ///
+    /// Only available when auditing is enabled during initialization.
+    /// - Returns: The file access report, or nil if auditing is disabled.
+    public func getFileAccessReport() async -> FileAccessReport? {
+        await fileAccessAuditor?.generateReport()
+    }
+
+    /// Validate file writes against allowed patterns.
+    ///
+    /// - Parameter allowedPatterns: Glob patterns for allowed write targets.
+    /// - Returns: Array of violations, or nil if auditing is disabled.
+    public func validateFileAccess(allowedPatterns: [String]) async throws -> [Violation]? {
+        try await fileAccessAuditor?.validateWrites(allowedPatterns: allowedPatterns)
     }
 
     // MARK: - Batch Translation
@@ -383,6 +487,66 @@ public actor TranslationService {
 
         entry.localizations = localizations
         xcstrings.strings[key] = entry
+    }
+
+    /// Resolve project root from a file URL.
+    ///
+    /// Searches up the directory tree for project markers (Package.swift, .xcodeproj, .git).
+    /// Falls back to the current working directory if no project root is found.
+    ///
+    /// - Parameter url: The file URL to start searching from.
+    /// - Returns: The resolved project root URL.
+    private func resolveProjectRoot(from url: URL) -> URL {
+        let fileManager = FileManager.default
+
+        // If config specifies an absolute project root, use it
+        if let projectRoot = configuration.context.projectRoot {
+            let projectURL = URL(fileURLWithPath: projectRoot)
+            if fileManager.fileExists(atPath: projectURL.path) {
+                return projectURL
+            }
+        }
+
+        // Try to find project markers up the directory tree
+        var current = url.deletingLastPathComponent()
+        let rootPath = "/"
+
+        while current.path != rootPath {
+            // Check for Package.swift (Swift Package)
+            let packageSwift = current.appendingPathComponent("Package.swift")
+            if fileManager.fileExists(atPath: packageSwift.path) {
+                return current
+            }
+
+            // Check for .xcodeproj (Xcode project)
+            if let contents = try? fileManager.contentsOfDirectory(at: current, includingPropertiesForKeys: nil),
+               contents.contains(where: { $0.pathExtension == "xcodeproj" }) {
+                return current
+            }
+
+            // Check for .xcworkspace (Xcode workspace)
+            if let contents = try? fileManager.contentsOfDirectory(at: current, includingPropertiesForKeys: nil),
+               contents.contains(where: { $0.pathExtension == "xcworkspace" }) {
+                return current
+            }
+
+            // Check for .git (git repository root)
+            let gitDir = current.appendingPathComponent(".git")
+            if fileManager.fileExists(atPath: gitDir.path) {
+                return current
+            }
+
+            // Check for .swiftlocalize.json (config file as marker)
+            let configFile = current.appendingPathComponent(".swiftlocalize.json")
+            if fileManager.fileExists(atPath: configFile.path) {
+                return current
+            }
+
+            current = current.deletingLastPathComponent()
+        }
+
+        // Default to current working directory
+        return URL(fileURLWithPath: fileManager.currentDirectoryPath)
     }
 }
 

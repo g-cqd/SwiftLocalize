@@ -322,13 +322,12 @@ public actor CatalogSynchronizer {
     ///   - masterCatalog: Optional master catalog to use as source of truth.
     ///   - options: Synchronization options.
     /// - Returns: A synchronization report.
-    public func synchronizeKeys(
+    public func synchronize(
         catalogs: [URL],
-        masterCatalog: URL? = nil,
-        options: SyncOptions = .init()
+        options: SyncOptions
     ) async throws -> SyncReport {
         let analyzer = KeyConsistencyAnalyzer()
-        let report = try await analyzer.analyze(catalogs: catalogs)
+        _ = try await analyzer.analyze(catalogs: catalogs)
 
         var addedKeys: [URL: [String]] = [:]
         var skippedKeys: [String] = []

@@ -7,6 +7,9 @@ import ArgumentParser
 import Foundation
 import SwiftLocalizeCore
 
+extension OperationMode: ExpressibleByArgument {}
+extension ContextDepth: ExpressibleByArgument {}
+
 @main
 struct SwiftLocalize: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
@@ -82,6 +85,24 @@ struct TranslateCommand: AsyncParsableCommand {
     @Flag(name: .customLong("all-targets"), help: "Translate all discovered targets in the project.")
     var allTargets = false
 
+    @Option(name: .customLong("mode"), help: "Operation mode (translation-only, full).")
+    var mode: OperationMode = .translationOnly
+
+    @Flag(name: .customLong("with-context"), help: "Extract usage context from source code (read-only).")
+    var withContext = false
+
+    @Flag(name: .customLong("no-context"), help: "Skip context extraction entirely.")
+    var noContext = false
+
+    @Option(name: .customLong("context-depth"), help: "Context extraction depth (none, minimal, standard, deep).")
+    var contextDepth: ContextDepth = .standard
+
+    @Flag(name: .customLong("verify-isolation"), help: "Verify strict file isolation before running.")
+    var verifyIsolation = false
+
+    @Flag(name: .customLong("show-context"), help: "Show extracted context in output.")
+    var showContext = false
+
     func run() async throws {
         // CI mode implies quiet and JSON output
         let effectiveQuiet = quiet || ciMode
@@ -112,22 +133,38 @@ struct TranslateCommand: AsyncParsableCommand {
             }
         }
 
-        // Override target languages if specified
+        // Apply CLI overrides to configuration
         var config = configuration
+
+        // Mode override
+        config.mode = mode
+
+        // Context overrides
+        if noContext {
+            config.context.depth = .none
+            config.context.sourceCode?.enabled = false
+        } else if withContext {
+            config.context.depth = contextDepth
+            if config.context.sourceCode == nil {
+                config.context.sourceCode = SourceCodeSettings(enabled: true)
+            } else {
+                config.context.sourceCode?.enabled = true
+            }
+        } else {
+             // Respect flag if set explicitly, otherwise keep config
+             if contextDepth != .standard {
+                 config.context.depth = contextDepth
+             }
+        }
+
+        // Isolation overrides
+        if verifyIsolation {
+            config.isolation.verifyBeforeRun = true
+        }
+
         if let languagesArg = languages {
             let langs = languagesArg.split(separator: ",").map { LanguageCode(String($0).trimmingCharacters(in: .whitespaces)) }
-            config = Configuration(
-                sourceLanguage: config.sourceLanguage,
-                targetLanguages: langs,
-                providers: config.providers,
-                translation: config.translation,
-                changeDetection: config.changeDetection,
-                files: config.files,
-                output: config.output,
-                validation: config.validation,
-                context: config.context,
-                logging: config.logging
-            )
+            config.targetLanguages = langs
         }
 
         // Validate configuration
@@ -195,6 +232,27 @@ struct TranslateCommand: AsyncParsableCommand {
             print("Found \(xcstringsURLs.count) xcstrings file(s)")
             for url in xcstringsURLs {
                 print("  - \(url.lastPathComponent)")
+            }
+        }
+
+        // Isolation Verification
+        if config.isolation.verifyBeforeRun {
+            if verbose && !effectiveQuiet {
+                print("Verifying file isolation...")
+            }
+            let verifier = IsolationVerifier()
+            let result = try await verifier.verify(configuration: config, mode: config.mode, files: xcstringsURLs)
+
+            if !result.isIsolated {
+                printError("Isolation verification failed!")
+                for warning in result.warnings {
+                    printError("  - \(warning)")
+                }
+                if config.isolation.strict {
+                    throw ExitCode.failure
+                }
+            } else if verbose && !effectiveQuiet {
+                print("Isolation verification passed.")
             }
         }
 
@@ -1616,7 +1674,7 @@ struct SyncKeysCommand: AsyncParsableCommand {
             dryRun: dryRun
         )
 
-        let syncReport = try await synchronizer.synchronizeKeys(
+        let syncReport = try await synchronizer.synchronize(
             catalogs: catalogURLs,
             options: syncOptions
         )
